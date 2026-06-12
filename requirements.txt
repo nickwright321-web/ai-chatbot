@@ -1,0 +1,6 @@
+distlib==0.4.2
+filelock==3.29.3
+platformdirs==4.10.0
+python-discovery==1.4.0
+virtualenv==21.4.2
+websockets==16.0

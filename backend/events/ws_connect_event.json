@@ -1,0 +1,7 @@
+{
+  "requestContext": {
+    "routeKey": "$connect",
+    "connectionId": "abc123",
+    "eventType": "CONNECT"
+  }
+}

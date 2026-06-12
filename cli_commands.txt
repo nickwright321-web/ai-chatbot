@@ -1,0 +1,61 @@
+aws cloudformation list-stacks \
+  --stack-status-filter REVIEW_IN_PROGRESS \
+  --region eu-west-2
+
+ aws cloudformation list-stacks `
+  --stack-status-filter CREATE_FAILED UPDATE_FAILED ROLLBACK_FAILED DELETE_FAILED `
+  --region eu-west-2
+
+
+  aws cloudformation describe-stack-resources \
+  --stack-name aws-sam-cli-managed-default \
+  --region eu-west-2
+
+rm -rf "/c/Users/nickw/AppData/Roaming/AWS SAM"
+
+
+aws cloudformation delete-stack \
+  --stack-name aws-sam-cli-managed-default \
+  --region eu-west-2
+
+
+aws cloudformation wait stack-delete-complete \
+  --stack-name aws-sam-cli-managed-default \
+  --region eu-west-2
+
+  aws cloudformation describe-stack-events \
+  --stack-name aws-sam-cli-managed-default \
+  --region eu-west-2 \
+  --max-items 5
+
+    aws cloudformation describe-stack-events `
+  --stack-name ai-chatbot `
+  --region eu-west-2 `
+  --max-items 5
+
+
+ rm -rf .aws-sam
+ sam build
+
+  sam deploy   --stack-name ai-chatbot   --region eu-west-2   --s3-bucket nick-ai-chatbot-artifacts   --capabilities CAPABILITY_IAM   --parameter-overrides       ConnectionsTableName=WS_Chat_Connections       BedrockModelId=anthropic.claude-3-haiku-20240307-v1:0       ServiceNowBaseUrl=https://your-instance.service-now.com       GenesysBaseUrl=https://api.mypurecloud.com
+
+
+ pip freeze > requirements.txt
+
+ # Clean the build folder
+Remove-Item -Recurse -Force .aws-sam
+
+# Rebuild
+sam build
+
+# Deploy
+sam deploy `
+  --stack-name ai-chatbot `
+  --region eu-west-2 `
+  --s3-bucket nick-ai-chatbot-artifacts `
+  --capabilities CAPABILITY_NAMED_IAM `
+  --parameter-overrides `
+      ConnectionsTableName=WS_Chat_Connections `
+      BedrockModelId=anthropic.claude-3-haiku-20240307-v1:0 `
+      ServiceNowBaseUrl=https://your-instance.service-now.com `
+      GenesysBaseUrl=https://api.mypurecloud.com
