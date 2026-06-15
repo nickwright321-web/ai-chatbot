@@ -1,0 +1,7 @@
+{"input": "Hello", "output": "Hello! How can I help today?"}
+{"input": "Hi", "output": "Hello! How can I help today?"}
+{"input": "Hey Bob", "output": "Hello! How can I help today?"}
+
+{"input": "I need help with my order", "output": "You need help with your order. I can connect you to the right team.\n1: General\n2: Sales\n3: Customer Service"}
+{"input": "My product is broken", "output": "Your product seems to be broken. I can connect you to the right team.\n1: General\n2: Sales\n3: Customer Service"}
+{"input": "Can you tell me about pricing?", "output": "You’re asking about pricing. I can connect you to the right team.\n1: General\n2: Sales\n3: Customer Service"}

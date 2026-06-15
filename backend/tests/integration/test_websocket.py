@@ -2,16 +2,18 @@ import asyncio
 import websockets
 import json
 
-WS_URL = "wss://t06c9a550e.execute-api.eu-west-2.amazonaws.com/prod"
+# Tests the websocket connection to the backend
+
+CHAT_WSOCK_URL = "wss://1m1ntm6aoi.execute-api.eu-west-2.amazonaws.com/prod"
 
 async def test():
-    async with websockets.connect(WS_URL) as ws:
+    async with websockets.connect(CHAT_WSOCK_URL) as ws:
         print("Connected")
 
         # Send a message to your route
         await ws.send(json.dumps({
           "action": "sendMessage",
-          "message": "Hello from test client"
+          "message": "Hello, I need some help"
         }))
 
         try:

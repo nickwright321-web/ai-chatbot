@@ -2,6 +2,12 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: AI ChatBot - WebSocket + Bedrock + ServiceNow + Genesys
 
+#############################################################
+# Run sam deploy and then run 
+# aws s3 cp Bedrock/bob-training.jsonl s3://bob-training-data-<acct>-<region>/
+# to upload the training data for Bob customization
+#############################################################
+
 Globals:
   Function:
     Runtime: python3.11
@@ -75,6 +81,8 @@ Resources:
     Properties:
       ApiId: !Ref WebSocketApi
       RouteKey: "$connect"
+      AuthorizationType: CUSTOM
+      AuthorizerId: !Ref WebSocketAuthorizerConfig
       Target: !Sub "integrations/${ConnectIntegration}"
 
   DisconnectRoute:
@@ -173,6 +181,12 @@ Resources:
             Action:
               - execute-api:ManageConnections
             Resource: "arn:aws:execute-api:*:*:*/@connections/*"
+        - Statement:
+            Effect: Allow
+            Action:
+              - bedrock:InvokeModel
+              - bedrock:InvokeModelWithResponseStream
+            Resource: "arn:aws:bedrock:eu-west-2::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0"
 
   ChatProcessorInvokePermission:
     Type: AWS::Lambda::Permission
@@ -181,6 +195,87 @@ Resources:
       FunctionName: !Ref ChatProcessor
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*/*
+
+############################################################
+# Websocket Authorizer
+############################################################
+
+  WebSocketAuthorizer:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/src/authoriser/
+      Handler: app.lambda_handler
+      Runtime: python3.11
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  WebSocketAuthorizerConfig:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      ApiId: !Ref WebSocketApi
+      AuthorizerType: REQUEST
+      Name: WebSocketOAuthAuthorizer
+      IdentitySource:
+        - route.request.querystring.token
+        - route.request.header.Authorization
+      AuthorizerUri: !Sub >
+        arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketAuthorizer.Arn}/invocations
+  
+  WebSocketAuthorizerInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref WebSocketAuthorizer
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/authorizers/*"
+
+  WebSocketSecret:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      Name: ai-chatbot-websocket-secret
+      Description: Secret used for WebSocket authorizer demo
+      SecretString: "abc123"
+
+############################################################
+# AI Elements
+############################################################
+
+  BobTrainingBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "bob-training-data-${AWS::AccountId}-${AWS::Region}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+
+  BobTrainingBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref BobTrainingBucket
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowSamDeployer
+            Effect: Allow
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/sam-deployer"
+            Action:
+              - s3:PutObject
+              - s3:GetObject
+              - s3:ListBucket
+            Resource:
+              - !Sub "${BobTrainingBucket.Arn}"
+              - !Sub "${BobTrainingBucket.Arn}/*"
+
 
 ############################################################
 # Roles
@@ -224,6 +319,37 @@ Resources:
                 Action:
                   - lambda:InvokeFunction
                 Resource: "*"
+
+  BobCustomizationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "BobCustomizationRole-${AWS::AccountId}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: bedrock.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: BedrockCustomizationAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource:
+                  - !Sub "${BobTrainingBucket.Arn}"
+                  - !Sub "${BobTrainingBucket.Arn}/*"
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                Resource:
+                  - !Sub "${BobTrainingBucket.Arn}/*"
+
+
 Outputs:
   WebSocketEndpoint:
     Description: WebSocket URL for the chat frontend

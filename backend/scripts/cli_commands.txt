@@ -33,6 +33,20 @@ aws cloudformation wait stack-delete-complete \
   --region eu-west-2 `
   --max-items 5
 
+  aws cloudformation delete-stack `
+  --stack-name ai-chatbot `
+  --region eu-west-2
+
+  
+aws cloudformation wait stack-delete-complete `
+  --stack-name ai-chatbot `
+  --region eu-west-2
+
+aws cloudformation describe-stack-events `
+  --stack-name ai-chatbot `
+  --region eu-west-2 `
+  --max-items 5
+
 
  rm -rf .aws-sam
  sam build
@@ -59,3 +73,6 @@ sam deploy `
       BedrockModelId=anthropic.claude-3-haiku-20240307-v1:0 `
       ServiceNowBaseUrl=https://your-instance.service-now.com `
       GenesysBaseUrl=https://api.mypurecloud.com
+
+
+.venv\Scripts\Activate.ps1
