@@ -37,6 +37,11 @@ aws cloudformation wait stack-delete-complete \
   --stack-name ai-chatbot `
   --region eu-west-2
 
+  aws secretsmanager delete-secret `
+  --secret-id ai-chatbot-websocket-secret `
+  --force-delete-without-recovery
+
+
   
 aws cloudformation wait stack-delete-complete `
   --stack-name ai-chatbot `

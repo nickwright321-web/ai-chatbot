@@ -48,306 +48,306 @@ Resources:
         - AttributeName: connectionId
           KeyType: HASH
 
-  ###########################################################
-  # WebSocket API
-  ###########################################################
-  WebSocketApi:
-    Type: AWS::ApiGatewayV2::Api
-    Properties:
-      Name: AIChatBotWebSocket
-      ProtocolType: WEBSOCKET
-      RouteSelectionExpression: "$request.body.action"
+#   ###########################################################
+#   # WebSocket API
+#   ###########################################################
+#   WebSocketApi:
+#     Type: AWS::ApiGatewayV2::Api
+#     Properties:
+#       Name: AIChatBotWebSocket
+#       ProtocolType: WEBSOCKET
+#       RouteSelectionExpression: "$request.body.action"
 
-  ###########################################################
-  # WebSocket Stage (must depend on LogGroup)
-  ###########################################################
+#   ###########################################################
+#   # WebSocket Stage (must depend on LogGroup)
+#   ###########################################################
   
-  WebSocketStage:
-    Type: AWS::ApiGatewayV2::Stage
-    Properties:
-      ApiId: !Ref WebSocketApi
-      StageName: prod
-      AutoDeploy: true
-      DefaultRouteSettings:
-        LoggingLevel: INFO
-        DataTraceEnabled: true
+#   WebSocketStage:
+#     Type: AWS::ApiGatewayV2::Stage
+#     Properties:
+#       ApiId: !Ref WebSocketApi
+#       StageName: prod
+#       AutoDeploy: true
+#       DefaultRouteSettings:
+#         LoggingLevel: INFO
+#         DataTraceEnabled: true
 
 
-  ###########################################################
-  # WebSocket Routes
-  ###########################################################
-  ConnectRoute:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId: !Ref WebSocketApi
-      RouteKey: "$connect"
-      AuthorizationType: CUSTOM
-      AuthorizerId: !Ref WebSocketAuthorizerConfig
-      Target: !Sub "integrations/${ConnectIntegration}"
+#   ###########################################################
+#   # WebSocket Routes
+#   ###########################################################
+#   ConnectRoute:
+#     Type: AWS::ApiGatewayV2::Route
+#     Properties:
+#       ApiId: !Ref WebSocketApi
+#       RouteKey: "$connect"
+#       AuthorizationType: CUSTOM
+#       AuthorizerId: !Ref WebSocketAuthorizerConfig
+#       Target: !Sub "integrations/${ConnectIntegration}"
 
-  DisconnectRoute:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId: !Ref WebSocketApi
-      RouteKey: "$disconnect"
-      Target: !Sub "integrations/${DisconnectIntegration}"
+#   DisconnectRoute:
+#     Type: AWS::ApiGatewayV2::Route
+#     Properties:
+#       ApiId: !Ref WebSocketApi
+#       RouteKey: "$disconnect"
+#       Target: !Sub "integrations/${DisconnectIntegration}"
       
-  ChatProcessorRoute:
-    Type: AWS::ApiGatewayV2::Route
-    Properties:
-      ApiId: !Ref WebSocketApi
-      RouteKey: "sendMessage"
-      Target: !Sub "integrations/${ChatProcessorIntegration}"
+#   ChatProcessorRoute:
+#     Type: AWS::ApiGatewayV2::Route
+#     Properties:
+#       ApiId: !Ref WebSocketApi
+#       RouteKey: "sendMessage"
+#       Target: !Sub "integrations/${ChatProcessorIntegration}"
 
-  ###########################################################
-  # WebSocket Integrations
-  ###########################################################
-  ConnectIntegration:
-    Type: AWS::ApiGatewayV2::Integration
-    Properties:
-      ApiId: !Ref WebSocketApi
-      IntegrationType: AWS_PROXY
-      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConnectionHandler.Arn}/invocations
+#   ###########################################################
+#   # WebSocket Integrations
+#   ###########################################################
+#   ConnectIntegration:
+#     Type: AWS::ApiGatewayV2::Integration
+#     Properties:
+#       ApiId: !Ref WebSocketApi
+#       IntegrationType: AWS_PROXY
+#       IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConnectionHandler.Arn}/invocations
 
-  DisconnectIntegration:
-    Type: AWS::ApiGatewayV2::Integration
-    Properties:
-      ApiId: !Ref WebSocketApi
-      IntegrationType: AWS_PROXY
-      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConnectionHandler.Arn}/invocations
+#   DisconnectIntegration:
+#     Type: AWS::ApiGatewayV2::Integration
+#     Properties:
+#       ApiId: !Ref WebSocketApi
+#       IntegrationType: AWS_PROXY
+#       IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConnectionHandler.Arn}/invocations
 
-  ChatProcessorIntegration:
-    Type: AWS::ApiGatewayV2::Integration
-    Properties:
-      ApiId: !Ref WebSocketApi
-      IntegrationType: AWS_PROXY
-      IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ChatProcessor.Arn}/invocations
+#   ChatProcessorIntegration:
+#     Type: AWS::ApiGatewayV2::Integration
+#     Properties:
+#       ApiId: !Ref WebSocketApi
+#       IntegrationType: AWS_PROXY
+#       IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ChatProcessor.Arn}/invocations
 
-  ###########################################################
-  # Lambda: Connection Handler
-  ###########################################################
-  ConnectionHandler:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: backend/src/connection_handler/
-      Handler: app.lambda_handler
-      Environment:
-        Variables:
-          CONNECTIONS_TABLE_NAME: !Ref ConnectionsTableName
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ConnectionsTableName
-        - AWSLambdaBasicExecutionRole
-        - Statement:
-            Effect: Allow
-            Action:
-              - execute-api:ManageConnections
-            Resource: "arn:aws:execute-api:*:*:*/@connections/*"
+#   ###########################################################
+#   # Lambda: Connection Handler
+#   ###########################################################
+#   ConnectionHandler:
+#     Type: AWS::Serverless::Function
+#     Properties:
+#       CodeUri: backend/src/connection_handler/
+#       Handler: app.lambda_handler
+#       Environment:
+#         Variables:
+#           CONNECTIONS_TABLE_NAME: !Ref ConnectionsTableName
+#       Policies:
+#         - DynamoDBCrudPolicy:
+#             TableName: !Ref ConnectionsTableName
+#         - AWSLambdaBasicExecutionRole
+#         - Statement:
+#             Effect: Allow
+#             Action:
+#               - execute-api:ManageConnections
+#             Resource: "arn:aws:execute-api:*:*:*/@connections/*"
 
-  ConnectionHandlerInvokePermissionConnect:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref ConnectionHandler
-      Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*/$connect
+#   ConnectionHandlerInvokePermissionConnect:
+#     Type: AWS::Lambda::Permission
+#     Properties:
+#       Action: lambda:InvokeFunction
+#       FunctionName: !Ref ConnectionHandler
+#       Principal: apigateway.amazonaws.com
+#       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*/$connect
 
-  ConnectionHandlerInvokePermissionDisconnect:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref ConnectionHandler
-      Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*/$disconnect
+#   ConnectionHandlerInvokePermissionDisconnect:
+#     Type: AWS::Lambda::Permission
+#     Properties:
+#       Action: lambda:InvokeFunction
+#       FunctionName: !Ref ConnectionHandler
+#       Principal: apigateway.amazonaws.com
+#       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*/$disconnect
 
-#############################################################
-# Lambda Chat Processor (handles messages from clients)
-#############################################################
+# #############################################################
+# # Lambda Chat Processor (handles messages from clients)
+# #############################################################
 
-  ChatProcessor:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: backend/src/chat_processor/
-      Handler: app.lambda_handler
-      Environment:
-        Variables:
-          CONNECTIONS_TABLE_NAME: !Ref ConnectionsTableName
-      Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ConnectionsTableName
-        - AWSLambdaBasicExecutionRole
-        - Statement:
-            Effect: Allow
-            Action:
-              - execute-api:ManageConnections
-            Resource: "arn:aws:execute-api:*:*:*/@connections/*"
-        - Statement:
-            Effect: Allow
-            Action:
-              - bedrock:InvokeModel
-              - bedrock:InvokeModelWithResponseStream
-            Resource: "arn:aws:bedrock:eu-west-2::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0"
+#   ChatProcessor:
+#     Type: AWS::Serverless::Function
+#     Properties:
+#       CodeUri: backend/src/chat_processor/
+#       Handler: app.lambda_handler
+#       Environment:
+#         Variables:
+#           CONNECTIONS_TABLE_NAME: !Ref ConnectionsTableName
+#       Policies:
+#         - DynamoDBCrudPolicy:
+#             TableName: !Ref ConnectionsTableName
+#         - AWSLambdaBasicExecutionRole
+#         - Statement:
+#             Effect: Allow
+#             Action:
+#               - execute-api:ManageConnections
+#             Resource: "arn:aws:execute-api:*:*:*/@connections/*"
+#         - Statement:
+#             Effect: Allow
+#             Action:
+#               - bedrock:InvokeModel
+#               - bedrock:InvokeModelWithResponseStream
+#             Resource: "arn:aws:bedrock:eu-west-2::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0"
 
-  ChatProcessorInvokePermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref ChatProcessor
-      Principal: apigateway.amazonaws.com
-      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*/*
+#   ChatProcessorInvokePermission:
+#     Type: AWS::Lambda::Permission
+#     Properties:
+#       Action: lambda:InvokeFunction
+#       FunctionName: !Ref ChatProcessor
+#       Principal: apigateway.amazonaws.com
+#       SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*/*
 
-############################################################
-# Websocket Authorizer
-############################################################
+# ############################################################
+# # Websocket Authorizer
+# ############################################################
 
-  WebSocketAuthorizer:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: backend/src/authoriser/
-      Handler: app.lambda_handler
-      Runtime: python3.11
-      Policies:
-        - AWSLambdaBasicExecutionRole
+#   WebSocketAuthorizer:
+#     Type: AWS::Serverless::Function
+#     Properties:
+#       CodeUri: backend/src/authoriser/
+#       Handler: app.lambda_handler
+#       Runtime: python3.11
+#       Policies:
+#         - AWSLambdaBasicExecutionRole
 
-  WebSocketAuthorizerConfig:
-    Type: AWS::ApiGatewayV2::Authorizer
-    Properties:
-      ApiId: !Ref WebSocketApi
-      AuthorizerType: REQUEST
-      Name: WebSocketOAuthAuthorizer
-      IdentitySource:
-        - route.request.querystring.token
-        - route.request.header.Authorization
-      AuthorizerUri: !Sub >
-        arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketAuthorizer.Arn}/invocations
+#   WebSocketAuthorizerConfig:
+#     Type: AWS::ApiGatewayV2::Authorizer
+#     Properties:
+#       ApiId: !Ref WebSocketApi
+#       AuthorizerType: REQUEST
+#       Name: WebSocketOAuthAuthorizer
+#       IdentitySource:
+#         - route.request.querystring.token
+#         - route.request.header.Authorization
+#       AuthorizerUri: !Sub >
+#         arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketAuthorizer.Arn}/invocations
   
-  WebSocketAuthorizerInvokePermission:
-    Type: AWS::Lambda::Permission
-    Properties:
-      Action: lambda:InvokeFunction
-      FunctionName: !Ref WebSocketAuthorizer
-      Principal: apigateway.amazonaws.com
-      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/authorizers/*"
+#   WebSocketAuthorizerInvokePermission:
+#     Type: AWS::Lambda::Permission
+#     Properties:
+#       Action: lambda:InvokeFunction
+#       FunctionName: !Ref WebSocketAuthorizer
+#       Principal: apigateway.amazonaws.com
+#       SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/authorizers/*"
 
-  WebSocketSecret:
-    Type: AWS::SecretsManager::Secret
-    DeletionPolicy: Delete
-    UpdateReplacePolicy: Delete
-    Properties:
-      Name: ai-chatbot-websocket-secret
-      Description: Secret used for WebSocket authorizer demo
-      SecretString: "abc123"
+#   WebSocketSecret:
+#     Type: AWS::SecretsManager::Secret
+#     DeletionPolicy: Delete
+#     UpdateReplacePolicy: Delete
+#     Properties:
+#       Name: ai-chatbot-websocket-secret
+#       Description: Secret used for WebSocket authorizer demo
+#       SecretString: "abc123"
 
-############################################################
-# AI Elements
-############################################################
+# ############################################################
+# # AI Elements
+# ############################################################
 
-  BobTrainingBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub "bob-training-data-${AWS::AccountId}-${AWS::Region}"
-      PublicAccessBlockConfiguration:
-        BlockPublicAcls: true
-        BlockPublicPolicy: true
-        IgnorePublicAcls: true
-        RestrictPublicBuckets: true
-      BucketEncryption:
-        ServerSideEncryptionConfiguration:
-          - ServerSideEncryptionByDefault:
-              SSEAlgorithm: AES256
-
-
-  BobTrainingBucketPolicy:
-    Type: AWS::S3::BucketPolicy
-    Properties:
-      Bucket: !Ref BobTrainingBucket
-      PolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Sid: AllowSamDeployer
-            Effect: Allow
-            Principal:
-              AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/sam-deployer"
-            Action:
-              - s3:PutObject
-              - s3:GetObject
-              - s3:ListBucket
-            Resource:
-              - !Sub "${BobTrainingBucket.Arn}"
-              - !Sub "${BobTrainingBucket.Arn}/*"
+#   BobTrainingBucket:
+#     Type: AWS::S3::Bucket
+#     Properties:
+#       BucketName: !Sub "bob-training-data-${AWS::AccountId}-${AWS::Region}"
+#       PublicAccessBlockConfiguration:
+#         BlockPublicAcls: true
+#         BlockPublicPolicy: true
+#         IgnorePublicAcls: true
+#         RestrictPublicBuckets: true
+#       BucketEncryption:
+#         ServerSideEncryptionConfiguration:
+#           - ServerSideEncryptionByDefault:
+#               SSEAlgorithm: AES256
 
 
-############################################################
-# Roles
-#############################################################
+#   BobTrainingBucketPolicy:
+#     Type: AWS::S3::BucketPolicy
+#     Properties:
+#       Bucket: !Ref BobTrainingBucket
+#       PolicyDocument:
+#         Version: "2012-10-17"
+#         Statement:
+#           - Sid: AllowSamDeployer
+#             Effect: Allow
+#             Principal:
+#               AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/sam-deployer"
+#             Action:
+#               - s3:PutObject
+#               - s3:GetObject
+#               - s3:ListBucket
+#             Resource:
+#               - !Sub "${BobTrainingBucket.Arn}"
+#               - !Sub "${BobTrainingBucket.Arn}/*"
 
-  ApiGatewayCloudWatchRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: ApiGatewayCloudWatchRole
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: apigateway.amazonaws.com
-            Action: sts:AssumeRole
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
 
-  ApiGatewayAccount:
-    Type: AWS::ApiGateway::Account
-    Properties:
-      CloudWatchRoleArn: !GetAtt ApiGatewayCloudWatchRole.Arn
+# ############################################################
+# # Roles
+# #############################################################
 
-  WebSocketApiExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: '2012-10-17'
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: apigateway.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: WebSocketApiExecutionPolicy
-          PolicyDocument:
-            Version: '2012-10-17'
-            Statement:
-              - Effect: Allow
-                Action:
-                  - lambda:InvokeFunction
-                Resource: "*"
+#   ApiGatewayCloudWatchRole:
+#     Type: AWS::IAM::Role
+#     Properties:
+#       RoleName: ApiGatewayCloudWatchRole
+#       AssumeRolePolicyDocument:
+#         Version: "2012-10-17"
+#         Statement:
+#           - Effect: Allow
+#             Principal:
+#               Service: apigateway.amazonaws.com
+#             Action: sts:AssumeRole
+#       ManagedPolicyArns:
+#         - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
 
-  BobCustomizationRole:
-    Type: AWS::IAM::Role
-    Properties:
-      RoleName: !Sub "BobCustomizationRole-${AWS::AccountId}"
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service: bedrock.amazonaws.com
-            Action: sts:AssumeRole
-      Policies:
-        - PolicyName: BedrockCustomizationAccess
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: Allow
-                Action:
-                  - s3:GetObject
-                  - s3:ListBucket
-                Resource:
-                  - !Sub "${BobTrainingBucket.Arn}"
-                  - !Sub "${BobTrainingBucket.Arn}/*"
-              - Effect: Allow
-                Action:
-                  - s3:PutObject
-                Resource:
-                  - !Sub "${BobTrainingBucket.Arn}/*"
+#   ApiGatewayAccount:
+#     Type: AWS::ApiGateway::Account
+#     Properties:
+#       CloudWatchRoleArn: !GetAtt ApiGatewayCloudWatchRole.Arn
+
+#   WebSocketApiExecutionRole:
+#     Type: AWS::IAM::Role
+#     Properties:
+#       AssumeRolePolicyDocument:
+#         Version: '2012-10-17'
+#         Statement:
+#           - Effect: Allow
+#             Principal:
+#               Service: apigateway.amazonaws.com
+#             Action: sts:AssumeRole
+#       Policies:
+#         - PolicyName: WebSocketApiExecutionPolicy
+#           PolicyDocument:
+#             Version: '2012-10-17'
+#             Statement:
+#               - Effect: Allow
+#                 Action:
+#                   - lambda:InvokeFunction
+#                 Resource: "*"
+
+#   BobCustomizationRole:
+#     Type: AWS::IAM::Role
+#     Properties:
+#       RoleName: !Sub "BobCustomizationRole-${AWS::AccountId}"
+#       AssumeRolePolicyDocument:
+#         Version: "2012-10-17"
+#         Statement:
+#           - Effect: Allow
+#             Principal:
+#               Service: bedrock.amazonaws.com
+#             Action: sts:AssumeRole
+#       Policies:
+#         - PolicyName: BedrockCustomizationAccess
+#           PolicyDocument:
+#             Version: "2012-10-17"
+#             Statement:
+#               - Effect: Allow
+#                 Action:
+#                   - s3:GetObject
+#                   - s3:ListBucket
+#                 Resource:
+#                   - !Sub "${BobTrainingBucket.Arn}"
+#                   - !Sub "${BobTrainingBucket.Arn}/*"
+#               - Effect: Allow
+#                 Action:
+#                   - s3:PutObject
+#                 Resource:
+#                   - !Sub "${BobTrainingBucket.Arn}/*"
 
 
 Outputs:

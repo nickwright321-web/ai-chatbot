@@ -1,0 +1,51 @@
+name: Deploy SAM Application
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install AWS SAM CLI
+        uses: aws-actions/setup-sam@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-2
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Build SAM application
+        run: sam build 
+        
+      - name: Deploy SAM application
+        run: |
+          sam deploy \
+            --stack-name ai-chatbot \
+            --region eu-west-2 \
+            --s3-bucket nick-ai-chatbot-artifacts \
+            --capabilities CAPABILITY_NAMED_IAM \
+            --parameter-overrides \
+              ConnectionsTableName=WS_Chat_Connections \
+              BedrockModelId=anthropic.claude-3-haiku-20240307-v1:0 \
+              ServiceNowBaseUrl=https://your-instance.service-now.com \
+              GenesysBaseUrl=https://api.mypurecloud.com \
+            --no-confirm-changeset \
+            --no-fail-on-empty-changeset
