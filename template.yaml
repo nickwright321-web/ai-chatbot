@@ -210,15 +210,15 @@ Resources:
         - AWSLambdaBasicExecutionRole
 
   WebSocketAuthorizerConfig:
-  Type: AWS::ApiGatewayV2::Authorizer
-  Properties:
-    ApiId: !Ref WebSocketApi
-    AuthorizerType: REQUEST
-    Name: WebSocketOAuthAuthorizer
-    IdentitySource:
-      - route.request.querystring.token
-    AuthorizerUri: !Sub >
-      arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketAuthorizer.Arn}/invocations
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      ApiId: !Ref WebSocketApi
+      AuthorizerType: REQUEST
+      Name: WebSocketOAuthAuthorizer
+      IdentitySource:
+        - route.request.querystring.token
+      AuthorizerUri: !Sub >
+        arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketAuthorizer.Arn}/invocations
 
   WebSocketAuthorizerInvokePermission:
     Type: AWS::Lambda::Permission
