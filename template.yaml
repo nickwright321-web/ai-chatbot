@@ -219,6 +219,10 @@
           - route.request.querystring.token
         AuthorizerPayloadFormatVersion: "2.0"
         EnableSimpleResponses: true
+        AuthorizerUri: !Sub >
+          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketAuthorizer.Arn}/invocations
+
+        
 
     WebSocketAuthorizerInvokePermission:
       Type: AWS::Lambda::Permission
