@@ -210,15 +210,15 @@
           - AWSLambdaBasicExecutionRole
 
     WebSocketAuthorizerConfig:
-    Type: AWS::ApiGatewayV2::Authorizer
-    Properties:
-      ApiId: !Ref WebSocketApi
-      AuthorizerType: REQUEST
-      Name: WebSocketOAuthAuthorizer
-      IdentitySource:
-        - route.request.querystring.token
-      AuthorizerPayloadFormatVersion: "2.0"
-      EnableSimpleResponses: true
+      Type: AWS::ApiGatewayV2::Authorizer
+      Properties:
+        ApiId: !Ref WebSocketApi
+        AuthorizerType: REQUEST
+        Name: WebSocketOAuthAuthorizer
+        IdentitySource:
+          - route.request.querystring.token
+        AuthorizerPayloadFormatVersion: "2.0"
+        EnableSimpleResponses: true
 
     WebSocketAuthorizerInvokePermission:
       Type: AWS::Lambda::Permission
