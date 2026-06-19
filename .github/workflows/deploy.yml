@@ -46,7 +46,6 @@ jobs:
             --stack-name ai-chatbot \
             --region eu-west-2 \
             --s3-bucket nick-ai-chatbot-artifacts \
-            --resolve-s3 \
             --capabilities CAPABILITY_NAMED_IAM \
             --parameter-overrides \
               ConnectionsTableName=WS_Chat_Connections \
