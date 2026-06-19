@@ -13,4 +13,6 @@ flowchart LR
         UI[React/Vite Chat Client]
     end
 
-    
+    subgraph API [API Gateway]
+        APIGW[API Gateway (REST + WebSocket)]
+    end
