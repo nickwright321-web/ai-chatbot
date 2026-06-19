@@ -2,12 +2,18 @@ import os
 import json
 import boto3
 import logging
+
+from datetime import datetime
 from chat_processor.ChatMessage import ChatMessage
 from chat_processor.ai_engine.factory import create_engine
 from shared.dynamoDBHelper import saveChatMessage,getChatHistory,loadSessionState,saveSessionState
+from chat_processor.SQSHelper import sendToInboundQueue
 
 # 1. Initialize AWS S3 client and Tokenizer
 s3_client = boto3.client('s3')
+
+# get the inbound queue name for forwarding messages
+QUEUE_NAME = os.environ.get("INBOUND_MESSAGES_QUEUE_URL", "InboundMessages")
 
 #Plugin architecture to allow alternative models
 ENGINE_ID = os.environ.get("ENGINE_ID", "Mistral7b2")
@@ -55,8 +61,9 @@ def lambda_handler(event, context, apigw_client_factory=get_apigw_client):
         # print(event_msg)
         logger.info(event_msg)
 
-        route = event["requestContext"]["routeKey"]
-        connectionId = event["requestContext"]["connectionId"]
+        route = event["requestContext"].get("routeKey")
+        connectionId = event["requestContext"].get("connectionId")
+        companyId = event["requestContext"]["authorizer"].get("companyId", "DemoComp")
 
         body = json.loads(event.get("body", "{}"))
         message = body.get("message", "")
@@ -88,7 +95,16 @@ def lambda_handler(event, context, apigw_client_factory=get_apigw_client):
 
             if pending_intent == "QUEUE":
                 # forward to queue
-                return
+                sendToInboundQueue(connectionId, companyId, message, QUEUE_NAME)
+
+                aiMessage = "OK, I'll forward your call to someone who can help!"
+
+                postToClient(AI_NAME, aiMessage, connectionId)
+
+                return {
+                        "statusCode": 200, 
+                        "body": f"Message received and forwarded to {QUEUE_NAME}"
+                        }
             
             logger.info(f"Retrieving chat history for {connectionId}")
             chatHistory = getChatHistory(connectionId, 10)
@@ -166,5 +182,4 @@ def checkPendingIntent(connectionId:str, message:str):
 def savePendingIntent(connectionId:str, intent:str):
     # store a pending intent
     if intent in ("SALES", "TECH_SUPPORT"):
-        saveSessionState(connectionId, intent)
-        
+        saveSessionState(connectionId, intent)   

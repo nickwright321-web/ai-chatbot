@@ -4,7 +4,8 @@ import json
 
 # Tests the websocket connection to the backend
 
-CHAT_WSOCK_URL = "wss://1m1ntm6aoi.execute-api.eu-west-2.amazonaws.com/prod"
+#CHAT_WSOCK_URL = "wss://1m1ntm6aoi.execute-api.eu-west-2.amazonaws.com/prod"
+CHAT_WSOCK_URL = "wss://1m1ntm6aoi.execute-api.eu-west-2.amazonaws.com/prod?token=abc123&companyId=BigCorp"
 
 async def test():
     async with websockets.connect(CHAT_WSOCK_URL) as ws:

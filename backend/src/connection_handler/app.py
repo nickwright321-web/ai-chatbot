@@ -1,7 +1,7 @@
 import os
 import json
 import boto3
-from backend.src.shared.dynamoDBHelper import clearSessionState
+from shared.dynamoDBHelper import clearSessionState
 
 # Connection lifecycle handler for WebSocket API
 # Handles $connect and $disconnect events to manage active connections in DynamoDB

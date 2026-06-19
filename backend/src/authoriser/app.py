@@ -6,7 +6,6 @@ secrets = boto3.client("secretsmanager")
 
 SECRET_NAME = os.environ.get("SECRET_NAME", "ai-chatbot-websocket-secret")
 
-
 def lambda_handler(event, context):
     print("Event:", json.dumps(event))
 
@@ -15,6 +14,7 @@ def lambda_handler(event, context):
     # 1. Extract token from query string
     if event.get("queryStringParameters"):
         token = event["queryStringParameters"].get("token")
+        companyId = event["queryStringParameters"].get("companyId")
 
     # 2. Or from Authorization header
     if not token and event.get("headers"):
@@ -37,12 +37,12 @@ def lambda_handler(event, context):
 
     # 4. Validate
     if token == expected_token:
-        return allow("demo-user", event)
+        return allow("demo-user", companyId, event)
     else:
         return deny("Invalid token", event)
 
 
-def allow(principal_id, event):
+def allow(principal_id, companyId, event):
     """Allow policy"""
     return {
         "principalId": principal_id,
@@ -57,7 +57,8 @@ def allow(principal_id, event):
             ]
         },
         "context": {
-            "principalId": principal_id
+            "principalId": principal_id,
+            "companyId": companyId
         }
     }
 

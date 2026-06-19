@@ -451,6 +451,14 @@
         VisibilityTimeout: 30
         MessageRetentionPeriod: 345600   # 4 days
         ReceiveMessageWaitTimeSeconds: 20
+
+    OutboundMessagesQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: OutboundMessages
+        VisibilityTimeout: 30
+        MessageRetentionPeriod: 345600   # 4 days
+        ReceiveMessageWaitTimeSeconds: 20
              
   ############################################################
   # Roles

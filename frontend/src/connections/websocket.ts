@@ -1,7 +1,7 @@
 import type { ReceivedMessage } from "../types/Messages";
 
 const CHAT_WSOCK_URL =
-  "wss://r6uuq83dfk.execute-api.eu-west-2.amazonaws.com/prod?token=abc123";
+  "wss://r6uuq83dfk.execute-api.eu-west-2.amazonaws.com/prod?token=abc123&companyId=BigCorp";
 
 // const CHAT_WSOCK_URL =
 //   "wss://gyubbrgk3b.execute-api.eu-west-2.amazonaws.com/prod?token=abc123";
