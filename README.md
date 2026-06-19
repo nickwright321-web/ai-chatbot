@@ -14,5 +14,46 @@ flowchart LR
     end
 
     subgraph API [API Gateway]
-        APIGW[API Gateway (REST + WebSocket)]
+        APIGW[API Websocket Gateway]
     end
+
+    subgraph BE [Backend - AWS Lambda]
+        Router[Lambda: Message Router]
+        AIHandler[Lambda: AI Plugin - Bedrock]
+        GenesysHandler[Lambda: Genesys Plugin]
+        ZoomHandler[Lambda: Zoom Plugin]
+        InfinityHandler[Lambda: Infinity Plugin]
+        SNOWHandler[Lambda: ServiceNow Plugin]
+    end
+
+    subgraph DB [Data Layer]
+        ConnTable[(DynamoDB Connections)]
+        ChatTable[(DynamoDB Chat History)]
+    end
+
+    subgraph EXT [External Systems]
+        Bedrock[Amazon Bedrock]
+        Genesys[Genesys Cloud]
+        Zoom[Zoom Contact Center]
+        Infinity[Infinity Contact Center]
+        SNOW[ServiceNow]
+    end
+
+    UI --> APIGW
+    APIGW --> Router
+
+    Router --> AIHandler
+    Router --> GenesysHandler
+    Router --> ZoomHandler
+    Router --> InfinityHandler
+    Router --> SNOWHandler
+
+    AIHandler --> Bedrock
+    GenesysHandler --> Genesys
+    ZoomHandler --> Zoom
+    InfinityHandler --> Infinity
+    SNOWHandler --> SNOW
+
+    Router --> ConnTable
+    Router --> ChatTable
+    AIHandler --> ChatTable
