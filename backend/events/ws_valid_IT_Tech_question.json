@@ -1,0 +1,26 @@
+{
+    "requestContext": {
+        "routeKey": "sendMessage",
+        "authorizer": {
+            "principalId": "demo-user"
+        },
+        "messageId": "gRRMGO5X7WeIKAIRIA==",
+        "eventType": "MESSAGE",
+        "extendedRequestId": "fHNbLHYzLPEETyw=",
+        "requestTime": "17/Jun/2026:15:52:13 +0000",
+        "messageDirection": "IN",
+        "stage": "prod",
+        "connectedAt": 1781711527954,
+        "requestTimeEpoch": 1781711533549,
+        "identity": {
+            "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0",
+            "sourceIp": "128.1.171.244"
+        },
+        "requestId": "fHNbLHYzLPEETyw=",
+        "domainName": "r6uuq83dfk.execute-api.eu-west-2.amazonaws.com",
+        "connectionId": "[connectionId]",
+        "apiId": "r6uuq83dfk"
+    },
+    "body": "{\"action\":\"sendMessage\",\"message\":\"I have a problem with my computer\"}",
+    "isBase64Encoded": false
+}

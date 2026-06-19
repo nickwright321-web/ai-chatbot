@@ -1,3 +1,13 @@
+Write-Host "Running sam validate..."
+sam validate
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "sam validate failed. Stopping script."
+    exit 1
+}
+
+Write-Host "Validation successful."
+
 # Delete .aws-sam folder if it exists
 if (Test-Path ".aws-sam") {
     Write-Host "Deleting .aws-sam folder..."

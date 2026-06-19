@@ -4,60 +4,78 @@ import os
 
 secrets = boto3.client("secretsmanager")
 
-# Name of the secret in Secrets Manager
 SECRET_NAME = os.environ.get("SECRET_NAME", "ai-chatbot-websocket-secret")
 
-def lambda_handler(event, context):
-    """
-    Simple WebSocket Lambda Authorizer.
-    Validates a token against a secret stored in AWS Secrets Manager.
-    """
 
+def lambda_handler(event, context):
     print("Event:", json.dumps(event))
 
-    # 1. Extract token from querystring or Authorization header
     token = None
 
+    # 1. Extract token from query string
     if event.get("queryStringParameters"):
         token = event["queryStringParameters"].get("token")
 
+    # 2. Or from Authorization header
     if not token and event.get("headers"):
         auth = event["headers"].get("Authorization")
         if auth and auth.lower().startswith("bearer "):
             token = auth.split(" ")[1]
 
     if not token:
-        return deny("Missing token")
+        return deny("Missing token", event)
 
-    # 2. get the secret
+    # 3. Get expected token (stubbed here)
     try:
-        secret_value = secrets.get_secret_value(SecretId=SECRET_NAME)
-        expected_token = secret_value["SecretString"]
+        expected_token = "abc123"
+        # real version:
+        # secret_value = secrets.get_secret_value(SecretId=SECRET_NAME)
+        # expected_token = secret_value["SecretString"]
     except Exception as e:
         print("Secrets Manager error:", str(e))
-        return deny("Server error")
+        return deny("Server error", event)
 
-    # 3. Compare
+    # 4. Validate
     if token == expected_token:
-        return allow("demo-user")
+        return allow("demo-user", event)
     else:
-        return deny("Invalid token")
+        return deny("Invalid token", event)
 
 
-def allow(principal_id):
-    """Return IAM policy that ALLOWS the WebSocket connection."""
+def allow(principal_id, event):
+    """Allow policy"""
     return {
-        "isAuthorized": True,
+        "principalId": principal_id,
+        "policyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Action": "execute-api:Invoke",
+                    "Effect": "Allow",
+                    "Resource": "*"
+                }
+            ]
+        },
         "context": {
             "principalId": principal_id
         }
     }
 
 
-def deny(message):
-    """Return IAM policy that DENIES the WebSocket connection."""
+def deny(message, event):
+    """Deny policy"""
     return {
-        "isAuthorized": False,
+        "principalId": "unauthorized",
+        "policyDocument": {
+            "Version": "2012-10-17",
+            "Statement": [
+                {
+                    "Action": "execute-api:Invoke",
+                    "Effect": "Deny",
+                    "Resource": "*"
+                }
+            ]
+        },
         "context": {
             "error": message
         }

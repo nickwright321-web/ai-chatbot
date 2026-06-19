@@ -31,12 +31,16 @@ export default function ChatWidget() {
 
     wsRef.current = ws;
 
-    ws.onclose = (e) => {
-      console.log("WebSocket closed:", e.code, e.reason);
-    };
+  ws.onclose = (e) => {
+    console.log("CLOSE CODE:", e.code, e.reason);
+  };
 
 
-    return () => ws.close();
+    return () => {
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.close();
+  }
+};
   }, []);
 
   const sendMessage = () => {

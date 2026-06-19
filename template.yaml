@@ -6,6 +6,17 @@
   # Run sam deploy and then run 
   # aws s3 cp Bedrock/bob-training.jsonl s3://bob-training-data-<acct>-<region>/
   # to upload the training data for Bob customization
+  #
+  # After the stack is deployed, run the following
+  # outputs as cli commands to start the Bedrock model customization job:
+  # UploadTrainingDataCommand
+  # StartModelTrainingCommand (only once fine tuning is enabled in eu-west-2)
+  # Then run the following to load the AI guardrailsw
+  # aws bedrock create-guardrail --cli-input-json file://Bedrock/computer-guardrail.json
+  # then
+  # aws bedrock publish-guardrail --guardrail-identifier ekricr3x6tsa --version 1
+
+
   #############################################################
 
   Globals:
@@ -15,13 +26,18 @@
       MemorySize: 256
 
   Parameters:
+
+    AIModel:
+      Type: String
+      Default: mistral.mistral-7b-instruct-v0:2
+  
     ConnectionsTableName:
       Type: String
       Default: WS_Chat_Connections
 
     BedrockModelId:
       Type: String
-      Default: anthropic.claude-3-haiku-20240307-v1:0
+      Default: "mistral.mistral-7b-instruct-v0:2"
 
     ServiceNowBaseUrl:
       Type: String
@@ -34,8 +50,10 @@
   Resources:
 
     ###########################################################
-    # DynamoDB Table
+    # DynamoDB Tables
     ###########################################################
+
+    # This table stores the WebSocket connection IDs for active clients
     ConnectionsTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -47,6 +65,46 @@
         KeySchema:
           - AttributeName: connectionId
             KeyType: HASH
+
+    # This table maps Genesys conversation IDs to WebSocket connection IDs
+    # so it can route messages back to the correct customer
+
+    GenesysConversationMap:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: GenesysConversationMap
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: genesysConversationId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: genesysConversationId
+            KeyType: HASH
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+        SSESpecification:
+          SSEEnabled: true
+
+    # stores the chat history for a connection to persist the model state
+    # for the AI
+    ChatHistory:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ChatHistory
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: connectionId
+            AttributeType: S
+          - AttributeName: timestamp
+            AttributeType: N
+        KeySchema:
+          - AttributeName: connectionId
+            KeyType: HASH
+          - AttributeName: timestamp
+            KeyType: RANGE
+        SSESpecification:
+          SSEEnabled: true
 
     ###########################################################
     # WebSocket API
@@ -108,6 +166,8 @@
         ApiId: !Ref WebSocketApi
         IntegrationType: AWS_PROXY
         IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConnectionHandler.Arn}/invocations
+        CredentialsArn: !GetAtt WebSocketIntegrationInvokeRole.Arn
+        PayloadFormatVersion: "1.0"
 
     DisconnectIntegration:
       Type: AWS::ApiGatewayV2::Integration
@@ -115,13 +175,17 @@
         ApiId: !Ref WebSocketApi
         IntegrationType: AWS_PROXY
         IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConnectionHandler.Arn}/invocations
-
+        CredentialsArn: !GetAtt WebSocketIntegrationInvokeRole.Arn
+        PayloadFormatVersion: "1.0"
+        
     ChatProcessorIntegration:
       Type: AWS::ApiGatewayV2::Integration
       Properties:
         ApiId: !Ref WebSocketApi
         IntegrationType: AWS_PROXY
         IntegrationUri: !Sub arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ChatProcessor.Arn}/invocations
+        CredentialsArn: !GetAtt WebSocketIntegrationInvokeRole.Arn
+        PayloadFormatVersion: "1.0"
 
     ###########################################################
     # Lambda: Connection Handler
@@ -129,7 +193,7 @@
     ConnectionHandler:
       Type: AWS::Serverless::Function
       Properties:
-        CodeUri: backend/src/connection_handler/
+        CodeUri: backend/src/
         Handler: app.lambda_handler
         Environment:
           Variables:
@@ -167,11 +231,12 @@
     ChatProcessor:
       Type: AWS::Serverless::Function
       Properties:
-        CodeUri: backend/src/chat_processor/
-        Handler: app.lambda_handler
+        CodeUri: backend/src/
+        Handler: chat_processor.app.lambda_handler
         Environment:
           Variables:
             CONNECTIONS_TABLE_NAME: !Ref ConnectionsTableName
+            AI_MODEL: !Ref AIModel
         Policies:
           - DynamoDBCrudPolicy:
               TableName: !Ref ConnectionsTableName
@@ -186,7 +251,43 @@
               Action:
                 - bedrock:InvokeModel
                 - bedrock:InvokeModelWithResponseStream
-              Resource: "arn:aws:bedrock:eu-west-2::foundation-model/anthropic.claude-3-sonnet-20240229-v1:0"
+              Resource: !Sub "arn:aws:bedrock:eu-west-2::foundation-model/${AIModel}"
+          - Statement: 
+              Effect: Allow
+              Action: 
+                  - bedrock:CreateGuardrail
+                  - bedrock:UpdateGuardrail
+                  - bedrock:GetGuardrail
+                  - bedrock:ListGuardrails
+                  - bedrock:CreateGuardrailVersion
+                  - bedrock:ApplyGuardrail
+              
+              Resource: "*" 
+          - Statement:
+            - Sid: S3ListBucketPermissions
+              Effect: Allow
+              Action:
+                - s3:ListBucket
+              Resource:
+                - !Sub "${BobTrainingBucket.Arn}"
+          - Statement:
+            - Sid: S3Permissions
+              Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:PutObject
+              Resource:
+                - !Sub "${BobTrainingBucket.Arn}/*"
+          - Statement:
+            - Sid: DynamoDBPermissions
+              Effect: Allow
+              Action:
+                - dynamodb:Query
+                - dynamodb:PutItem
+                - dynamodb:GetItem
+              Resource:
+                 - !GetAtt ChatHistory.Arn
+              
 
     ChatProcessorInvokePermission:
       Type: AWS::Lambda::Permission
@@ -208,21 +309,61 @@
         Runtime: python3.11
         Policies:
           - AWSLambdaBasicExecutionRole
-
+          
+    WebSocketIntegrationInvokeRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: apigateway.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: AllowInvokeConnectLambda
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action: lambda:InvokeFunction
+                  Resource: 
+                    - !GetAtt ConnectionHandler.Arn
+                    - !Sub "${ConnectionHandler.Arn}:*"
+                    - !GetAtt ChatProcessor.Arn
+                    - !Sub "${ChatProcessor.Arn}:*"
+    
     WebSocketAuthorizerConfig:
-      Type: AWS::ApiGatewayV2::Authorizer
+      Type: AWS::ApiGatewayV2::Authorizer    
       Properties:
         ApiId: !Ref WebSocketApi
         AuthorizerType: REQUEST
         Name: WebSocketOAuthAuthorizer
         IdentitySource:
           - route.request.querystring.token
-        AuthorizerPayloadFormatVersion: "2.0"
-        EnableSimpleResponses: true
-        AuthorizerUri: !Sub >
-          arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${WebSocketAuthorizer.Arn}/invocations
+        AuthorizerUri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+          - { LambdaArn: !GetAtt WebSocketAuthorizer.Arn }
+        AuthorizerCredentialsArn: !GetAtt WebSocketAuthorizerInvokeRole.Arn
 
-        
+    WebSocketAuthorizerInvokeRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: apigateway.amazonaws.com
+              Action: sts:AssumeRole
+        Policies:
+          - PolicyName: AllowInvokeAuthorizerLambda
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action: lambda:InvokeFunction
+                  Resource: !GetAtt WebSocketAuthorizer.Arn
 
     WebSocketAuthorizerInvokePermission:
       Type: AWS::Lambda::Permission
@@ -230,7 +371,7 @@
         Action: lambda:InvokeFunction
         FunctionName: !Ref WebSocketAuthorizer
         Principal: apigateway.amazonaws.com
-        SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*/routes/*"
+        SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/authorizers/*
 
     WebSocketSecret:
       Type: AWS::SecretsManager::Secret
@@ -242,7 +383,7 @@
         SecretString: "abc123"
 
   ############################################################
-  # AI Elements
+  # Bedrock Elements
   ############################################################
 
     BobTrainingBucket:
@@ -253,33 +394,55 @@
           BlockPublicAcls: true
           BlockPublicPolicy: true
           IgnorePublicAcls: true
-          RestrictPublicBuckets: true
+          RestrictPublicBuckets: true      
         BucketEncryption:
           ServerSideEncryptionConfiguration:
             - ServerSideEncryptionByDefault:
                 SSEAlgorithm: AES256
-
-
-    BobTrainingBucketPolicy:
-      Type: AWS::S3::BucketPolicy
+    
+    BedrockCustomizationRole:
+      Type: AWS::IAM::Role
       Properties:
-        Bucket: !Ref BobTrainingBucket
-        PolicyDocument:
+        RoleName: BedrockCustomizationRole
+        AssumeRolePolicyDocument:
           Version: "2012-10-17"
           Statement:
-            - Sid: AllowSamDeployer
-              Effect: Allow
+            - Effect: Allow
               Principal:
-                AWS: !Sub "arn:aws:iam::${AWS::AccountId}:role/sam-deployer"
+                Service:
+                  - bedrock.amazonaws.com
               Action:
-                - s3:PutObject
-                - s3:GetObject
-                - s3:ListBucket
-              Resource:
-                - !Sub "${BobTrainingBucket.Arn}"
-                - !Sub "${BobTrainingBucket.Arn}/*"
+                - sts:AssumeRole
+        Policies:
+          - PolicyName: BedrockCustomizationAccess
+            PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                # Allow Bedrock to read your training data
+                - Effect: Allow
+                  Action:
+                    - s3:GetObject
+                    - s3:ListBucket
+                  Resource:
+                    - !Sub "${BobTrainingBucket.Arn}"
+                    - !Sub "${BobTrainingBucket.Arn}/*"
 
+                # Allow Bedrock to write model artifacts
+                - Effect: Allow
+                  Action:
+                    - s3:PutObject
+                  Resource:
+                    - !Sub "${BobTrainingBucket.Arn}/*"
 
+                # Allow Bedrock to create and manage customization jobs
+                - Effect: Allow
+                  Action:
+                    - bedrock:CreateModelCustomizationJob
+                    - bedrock:GetModelCustomizationJob
+                    - bedrock:ListModelCustomizationJobs
+                  Resource: "*"
+
+               
   ############################################################
   # Roles
   #############################################################
@@ -323,37 +486,27 @@
                     - lambda:InvokeFunction
                   Resource: "*"
 
-    BobCustomizationRole:
-      Type: AWS::IAM::Role
-      Properties:
-        RoleName: !Sub "BobCustomizationRole-${AWS::AccountId}"
-        AssumeRolePolicyDocument:
-          Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Principal:
-                Service: bedrock.amazonaws.com
-              Action: sts:AssumeRole
-        Policies:
-          - PolicyName: BedrockCustomizationAccess
-            PolicyDocument:
-              Version: "2012-10-17"
-              Statement:
-                - Effect: Allow
-                  Action:
-                    - s3:GetObject
-                    - s3:ListBucket
-                  Resource:
-                    - !Sub "${BobTrainingBucket.Arn}"
-                    - !Sub "${BobTrainingBucket.Arn}/*"
-                - Effect: Allow
-                  Action:
-                    - s3:PutObject
-                  Resource:
-                    - !Sub "${BobTrainingBucket.Arn}/*"
-
-
   Outputs:
     WebSocketEndpoint:
       Description: WebSocket URL for the chat frontend
       Value: !Sub "wss://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
+
+    BobsTrainingBucketName:
+      Description: S3 Bucket for Bob training data
+      Value: !Ref BobTrainingBucket
+
+    BedrockCustomizationRole:
+      Description: IAM Role for Bedrock customization
+      Value: !GetAtt BedrockCustomizationRole.Arn
+    
+    UploadTrainingDataCommand:
+      Description: PowerShell command to upload the training JSONL file
+      Value: !Sub "aws s3 cp Bedrock/bob-training.jsonl s3://${BobTrainingBucket}/bob-training.jsonl"
+    
+    UploadBobPromptCommand:
+      Description: PowerShell command to upload the training JSONL file
+      Value: !Sub "aws s3 cp Bedrock/bob-prompt.txt s3://${BobTrainingBucket}/bob-prompt.txt"
+
+    StartModelTrainingCommand:
+      Description: PowerShell command to start the Bedrock model customization job
+      Value: !Sub "aws bedrock start-model-customization-job --region ${AWS::Region} --job-name bob-training --custom-model-name bob-v1 --base-model-identifier mistral.mistral-7b-instruct-v0:2 --training-data-s3-uri s3://${BobTrainingBucket}/bob-training.jsonl --role-arn ${BedrockCustomizationRole.Arn}"

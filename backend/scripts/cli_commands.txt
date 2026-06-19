@@ -42,6 +42,9 @@ aws cloudformation wait stack-delete-complete \
   --force-delete-without-recovery
 
 
+  aws cloudformation describe-stack-resources `
+  --stack-name ai-chatbot `
+  --region eu-west-2
   
 aws cloudformation wait stack-delete-complete `
   --stack-name ai-chatbot `
@@ -81,3 +84,38 @@ sam deploy `
 
 
 .venv\Scripts\Activate.ps1
+
+aws apigatewayv2 get-apis
+
+aws apigatewayv2 get-routes --api-id r6uuq83dfk
+aws apigatewayv2 get-integrations --api-id r6uuq83dfk
+
+aws apigatewayv2 get-route --api-id gyubbrgk3b --route-id 7a11zo4
+
+aws lambda get-policy --function-name ai-chatbot-ConnectionHandler-zSFyHPhWgUZu
+
+aws apigatewayv2 get-authorizers --api-id cvql9gb0i3
+
+aws apigatewayv2 get-authorizer --api-id r6uuq83dfk --authorizer-id mwkhh0
+
+
+
+$ aws apigatewayv2 update-authorizer \
+  --api-id <api-id> \
+  --authorizer-id uj6qbt \
+  --identity-source "route.request.querystring.token"
+
+  npm --prefix ./frontend run dev
+
+  aws bedrock-runtime invoke-model `
+  --model-id "mistral.mistral-7b-instruct-v0:2" `
+  --region "eu-west-2"  --body '{  "prompt": "### SYSTEM INSTRUCTIONS ###\nYou are Bob.\n### END SYSTEM INSTRUCTIONS ###\n\nUser: Hello\nBob:", "max_tokens": 50 }' `
+  output.json
+
+
+aws bedrock-runtime invoke-model --model-id "mistral.mistral-7b-instruct-v0:2" --region "eu-west-2" --body "{\"prompt\":\"### SYSTEM INSTRUCTIONS ###\nYou are Bob.\n### END SYSTEM INSTRUCTIONS ###\n\nUser: Hello\nBob:\",\"max_tokens\":50}" output.json
+aws bedrock-runtime invoke-model --model-id "mistral.mistral-7b-instruct-v0:2" --region "eu-west-2" --body '{\"prompt\":\"### SYSTEM INSTRUCTIONS ###\nYou are Bob.\n### END SYSTEM INSTRUCTIONS ###\n\nUser: Hello\nBob:\",\"max_tokens\":50}' output.json
+aws bedrock-runtime invoke-model --model-id "mistral.mistral-7b-instruct-v0:2" --region "eu-west-2" --body '{\"prompt\":\"You are Bob.\nUser: Hello\nBob:\",\"max_tokens\":50}' output.json
+
+
+aws s3 cp Bedrock/bob-prompt.txt s3://bob-training-data-132696833143-eu-west-2/bob-prompt.txt

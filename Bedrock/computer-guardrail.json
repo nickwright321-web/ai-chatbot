@@ -1,0 +1,92 @@
+{
+  "name": "ai_chatbot_computer_guardrail",
+  "description": "Blocks all non‑computer topics.",
+
+  "topicPolicyConfig": {
+    "topicsConfig": [
+      {
+        "type": "DENY",
+        "name": "geography",
+        "definition": "Questions about countries, cities, locations, or physical places.",
+        "examples": [
+          "Where is Brazil?",
+          "Where is Paris?",
+          "Where is Japan?",
+          "Where is the Sahara Desert?",
+          "Where is the North Pole?"
+        ],
+        "inputAction": "BLOCK",
+        "outputAction": "BLOCK",
+        "inputEnabled": true,
+        "outputEnabled": true
+      },
+      {
+        "type": "DENY",
+        "name": "science",
+        "definition": "Questions about biology, chemistry, physics, or natural sciences.",
+        "examples": [
+          "What is photosynthesis?",
+          "Explain gravity.",
+          "What is DNA?",
+          "How do plants grow?",
+          "What is an atom?"
+        ],
+        "inputAction": "BLOCK",
+        "outputAction": "BLOCK",
+        "inputEnabled": true,
+        "outputEnabled": true
+      },
+      {
+        "type": "DENY",
+        "name": "history",
+        "definition": "Questions about historical events, people, or timelines.",
+        "examples": [
+          "Who was Julius Caesar?",
+          "What caused World War II?",
+          "Who built the pyramids?",
+          "What was the Roman Empire?",
+          "Who was Napoleon?"
+        ],
+        "inputAction": "BLOCK",
+        "outputAction": "BLOCK",
+        "inputEnabled": true,
+        "outputEnabled": true
+      },
+      {
+        "type": "DENY",
+        "name": "medicine",
+        "definition": "Questions about diseases, symptoms, treatments, or medical advice.",
+        "examples": [
+          "What are the symptoms of flu?",
+          "How do I treat a headache?",
+          "What is diabetes?",
+          "What is a virus?",
+          "What is a vaccine?"
+        ],
+        "inputAction": "BLOCK",
+        "outputAction": "BLOCK",
+        "inputEnabled": true,
+        "outputEnabled": true
+      },
+      {
+        "type": "DENY",
+        "name": "entertainment",
+        "definition": "Questions about movies, music, celebrities, or pop culture.",
+        "examples": [
+          "Tell me about the movie Titanic.",
+          "Who is Taylor Swift?",
+          "What is Star Wars?",
+          "What is Netflix?",
+          "Who is Beyoncé?"
+        ],
+        "inputAction": "BLOCK",
+        "outputAction": "BLOCK",
+        "inputEnabled": true,
+        "outputEnabled": true
+      }
+    ]
+  },
+
+  "blockedInputMessaging": "I can only help with computer‑related questions. I’ll route this to General Enquiry so someone can assist you.",
+  "blockedOutputsMessaging": "I can only help with computer‑related questions. I’ll route this to General Enquiry so someone can assist you."
+}

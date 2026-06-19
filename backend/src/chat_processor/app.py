@@ -1,93 +1,171 @@
 import os
 import json
 import boto3
+import logging
+from chat_processor.ChatMessage import ChatMessage
+from chat_processor.ai_engine.factory import create_engine
+from shared.dynamoDBHelper import saveChatMessage,getChatHistory,loadSessionState,saveSessionState
 
-#MODEL_ID = os.environ.get("MODEL_ID", "mistral.mistral-large-2402-v1:0")
+# 1. Initialize AWS S3 client and Tokenizer
+s3_client = boto3.client('s3')
 
-MODEL_ID = "mistral.mistral-7b-instruct-v0:2"
+#Plugin architecture to allow alternative models
+ENGINE_ID = os.environ.get("ENGINE_ID", "Mistral7b2")
+BOB_PROMPT = os.environ.get("BOB_PROMPT", "s3://bob-training-data-132696833143-eu-west-2/bob-prompt.txt")
 
+def get_engine():
+    return create_engine(ENGINE_ID)
 
-#bedrock = boto3.client("bedrock-runtime")
+AI_NAME = os.environ.get("AI_NAME", "Bob")
 
-def lambda_handler(event, context):
+#initialise the logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# for debugging, we need to inject a mock
+# API Gateway passed from the test script.
+# If no instance is passed, then this is
+# a Lambda call from AWS so return the
+# botob3 client
+
+def get_apigw_client(domain, stage):
+    return boto3.client(
+        "apigatewaymanagementapi",
+        endpoint_url=f"https://{domain}/{stage}"
+    )
+
+class Gateway:
+    _client = None
+
+    @classmethod
+    def init(cls, client):
+        cls._client = client
+
+    @classmethod
+    def get(cls):
+        if cls._client is None:
+            raise RuntimeError("Gateway client not initialised")
+        return cls._client
+
+def lambda_handler(event, context, apigw_client_factory=get_apigw_client):
 
     try:
-        print(f"Received event: {json.dumps(event)}")
+        event_msg = f"EVENT: {json.dumps(event)}"
+        # print(event_msg)
+        logger.info(event_msg)
 
         route = event["requestContext"]["routeKey"]
-        connection_id = event["requestContext"]["connectionId"]
+        connectionId = event["requestContext"]["connectionId"]
 
         body = json.loads(event.get("body", "{}"))
         message = body.get("message", "")
 
-        print(f"Received {route} event for connection ID: {connection_id}")
-        print(f"Message: {message}")
+        logger.info(f"Received {route} event for connection ID: {connectionId}")
+        logger.info(f"Message: {message}")
 
         # Create API Gateway Management API client
         domain = event["requestContext"]["domainName"]
         stage = event["requestContext"]["stage"]
 
-        print("DOMAIN:", domain)
-        print("STAGE:", stage)
-        print("CALLBACK URL:", f"https://{domain}/{stage}")
+        logger.info("DOMAIN: %s", domain)
+        logger.info("STAGE: %s", stage)
 
-        apigw = boto3.client(
-            "apigatewaymanagementapi",
-            endpoint_url=f"https://{domain}/{stage}"
-        )
-
-        # Send a message back to the client
         try:
-            agentName = "Bob"
-            ai_reply = callBob(message)
-            reply = {   "agentName": agentName,
-                        "message": ai_reply
-                    }
-          
-            apigw.post_to_connection(
-                ConnectionId=connection_id,
-                Data=json.dumps(reply).encode("utf-8")
-            )
-            print("Message sent OK")
+            logger.info("Getting API Gateway...")
+            apigw = apigw_client_factory(domain, stage)
+           # apigw = apigw_client_factory(domain, stage)
+            Gateway.init(apigw)
+
+            logger.info("API Gateway retrieved successfully")
+
         except Exception as e:
-            print("Error sending message:", e)
+            logger.error(f"Failed to get API Gateway: {e}")
 
+        #start processing the message
+        try:
 
+            pending_intent = checkPendingIntent(connectionId, message)
+
+            if pending_intent == "QUEUE":
+                # forward to queue
+                return
+            
+            logger.info(f"Retrieving chat history for {connectionId}")
+            chatHistory = getChatHistory(connectionId, 10)
+            logger.info(f"Retrieved chat history for {connectionId}")
+
+            #Save the current message after retrieving chat history, to avoid
+            # duplication 
+            # 
+            logger.info(f"Saving message for {connectionId}...")           
+            saveChatMessage(connectionId, "User", ChatMessage(text=message, intent="user"))
+            logger.info(f"Message saved successfully for {connectionId}...")
+
+            #Send the user's message and chat history to the AI
+
+            ai_reply:ChatMessage = get_engine().sendToAI(message,chatHistory)
+            
+            # save the AI response with the intent
+            logger.info(f"Saving AI response for {connectionId}...")  
+            saveChatMessage(connectionId, AI_NAME, ai_reply)
+            logger.info(f"AI response saved successfully for {connectionId}...")
+
+            savePendingIntent(connectionId,ai_reply.intent)
+
+            # post the AI reply back to the client via the 
+            # websocket    
+            postToClient(AI_NAME, ai_reply.text, connectionId)
+
+        except Exception as e:
+            logger.error("Sending message to client6:%s", e)
+           # print("ERROR: Sending message to client:", e)
 
         return {"statusCode": 200, "body": "Message received"}
 
 
     except Exception as e:
-        print(f"Error processing event: {e}")
+        logger.error("Error processing event:%s", e)        
+       # print(f"Error processing event: {e}")
         return {"statusCode": 400, "body": "Invalid event format"}
-    
 
+def postToClient(agentName:str, message:str, connectionId:str):
+    apigw = Gateway.get()
+    reply:dict[str,str] = {   "agentName": agentName,
+                    "message": message
+            }
 
-def callBob(user_message: str) -> str:
-    """
-    Sends the user message to Claude 3 Sonnet via Bedrock
-    and returns the bot's reply.
-    """
-    try:
-        bedrock = boto3.client("bedrock-runtime", region_name="eu-west-2")
-        print("Bedrock client endpoint:", bedrock._endpoint.host)
+    apigw.post_to_connection(
+        ConnectionId=connectionId,
+        Data=json.dumps(reply).encode("utf-8")
+    )
+    logger.info("Message sent OK")
 
-        response = bedrock.invoke_model(
-            modelId=MODEL_ID,
-           body=json.dumps({
-                "prompt": f"You are Bob, answer the user in one sentence and do not give any custom responses.\n\nUser: {user_message}\nAssistant:",
-                "max_tokens": 50
-            })
-        )
+def checkPendingIntent(connectionId:str, message:str):
+    # Check for pending intent
+    state = loadSessionState(connectionId)
+    pending_intent = state.get("pending_intent") if state else None
 
+    if pending_intent:
+        lower = message.lower()
 
-        model_response = json.loads(response["body"].read())
-        ai_text = model_response['outputs'][0]['text']
+        if lower in ["yes", "y", "ok", "sure"]:
+            #  forward_to_queue(pending_intent, connectionId)
+            #  clearSessionState(connectionId)
+            #  postToClient(AI_NAME, "Okay, forwarding you now.", connectionId)
+            #  return {"statusCode": 200}
+            return "QUEUE"
 
-        print("Bedrock model response:", ai_text)
+        if lower in ["no", "n"]:
+            return "CONTINUE"
+            #  postToClient(AI_NAME, "No problem, how else can I help?", connectionId)
+            #  return {"statusCode": 200}
 
-        return ai_text
+    # postToClient(AI_NAME, "Just to confirm, would you like me to forward you.", connectionId)
+    #  return {"statusCode": 200}
 
-    except Exception as e:
-        print("Bedrock error:", e)
-        return "Sorry, I had trouble generating a response."
+def savePendingIntent(connectionId:str, intent:str):
+    # store a pending intent
+    if intent in ("SALES", "TECH_SUPPORT"):
+        saveSessionState(connectionId, intent)
+        
