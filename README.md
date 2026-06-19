@@ -13,8 +13,7 @@ flowchart LR
     end
 
     subgraph API[API Gateway]
-        APIGW[API Gateway (WebSocket)]
-        
+        APIGW[API Gateway (Websocket)]
     end
 
     subgraph BE[Backend - AWS Lambda]
