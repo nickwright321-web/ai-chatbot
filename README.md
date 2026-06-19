@@ -12,13 +12,13 @@ flowchart LR
         UI[React/Vite Chat Client]
     end
 
-    subgraph API[API Layer]
-        APIGW[API Gateway<br/>(REST + WebSocket)]
+    subgraph API[API Gateway]
+        APIGW[API Gateway (REST + WebSocket)]
     end
 
     subgraph BE[Backend - AWS Lambda]
         Router[Lambda: Message Router]
-        AIHandler[Lambda: AI Plugin<br/>(Bedrock)]
+        AIHandler[Lambda: AI Plugin - Bedrock]
         GenesysHandler[Lambda: Genesys Plugin]
         ZoomHandler[Lambda: Zoom Plugin]
         InfinityHandler[Lambda: Infinity Plugin]
@@ -26,43 +26,33 @@ flowchart LR
     end
 
     subgraph DB[Data Layer]
-        ConnTable[(DynamoDB<br/>Connections Table)]
-        ChatTable[(DynamoDB<br/>Chat History)]
+        ConnTable[(DynamoDB Connections Table)]
+        ChatTable[(DynamoDB Chat History)]
     end
 
     subgraph EXT[External Systems]
-        Bedrock[Amazon Bedrock<br/>AI Model]
-        Genesys[Genesys Cloud<br/>Live Agent]
+        Bedrock[Amazon Bedrock AI Model]
+        Genesys[Genesys Cloud Live Agent]
         Zoom[Zoom Contact Center]
-        Infinity[Infinity CC]
-        SNOW[ServiceNow<br/>Ticketing]
+        Infinity[Infinity Contact Center]
+        SNOW[ServiceNow Ticketing]
     end
 
-    %% Frontend to API
     UI --> APIGW
-
-    %% API to backend router
     APIGW --> Router
 
-    %% Router to plugins
     Router --> AIHandler
     Router --> GenesysHandler
     Router --> ZoomHandler
     Router --> InfinityHandler
     Router --> SNOWHandler
 
-    %% AI plugin to Bedrock
     AIHandler --> Bedrock
-
-    %% CC plugins to external CC systems
     GenesysHandler --> Genesys
     ZoomHandler --> Zoom
     InfinityHandler --> Infinity
-
-    %% ServiceNow plugin
     SNOWHandler --> SNOW
 
-    %% Database interactions
     Router --> ConnTable
     Router --> ChatTable
     AIHandler --> ChatTable
