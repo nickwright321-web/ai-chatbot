@@ -8,15 +8,16 @@ and cc systems such as Genesys, Zoom and Infinity
 
 ```mermaid
 flowchart LR
-    subgraph FE[Frontend]
+
+    subgraph FE [Frontend]
         UI[React/Vite Chat Client]
     end
 
-    subgraph API[API Gateway]
-        APIGW[API Gateway (Websocket)]
+    subgraph API [API Gateway]
+        APIGW[API Gateway (REST + WebSocket)]
     end
 
-    subgraph BE[Backend - AWS Lambda]
+    subgraph BE [Backend - AWS Lambda]
         Router[Lambda: Message Router]
         AIHandler[Lambda: AI Plugin - Bedrock]
         GenesysHandler[Lambda: Genesys Plugin]
@@ -25,17 +26,17 @@ flowchart LR
         SNOWHandler[Lambda: ServiceNow Plugin]
     end
 
-    subgraph DB[Data Layer]
-        ConnTable[(DynamoDB Connections Table)]
+    subgraph DB [Data Layer]
+        ConnTable[(DynamoDB Connections)]
         ChatTable[(DynamoDB Chat History)]
     end
 
-    subgraph EXT[External Systems]
-        Bedrock[Amazon Bedrock AI Model]
-        Genesys[Genesys Cloud Live Agent]
+    subgraph EXT [External Systems]
+        Bedrock[Amazon Bedrock]
+        Genesys[Genesys Cloud]
         Zoom[Zoom Contact Center]
         Infinity[Infinity Contact Center]
-        SNOW[ServiceNow Ticketing]
+        SNOW[ServiceNow]
     end
 
     UI --> APIGW
