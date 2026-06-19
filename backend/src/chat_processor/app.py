@@ -74,7 +74,6 @@ def lambda_handler(event, context, apigw_client_factory=get_apigw_client):
         try:
             logger.info("Getting API Gateway...")
             apigw = apigw_client_factory(domain, stage)
-           # apigw = apigw_client_factory(domain, stage)
             Gateway.init(apigw)
 
             logger.info("API Gateway retrieved successfully")

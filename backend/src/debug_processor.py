@@ -32,7 +32,7 @@ response = lambda_handler(event, context, apigw_client_factory = lambda domain, 
 print("Lambda returned:", response)
 
 
-with open("backend/events/ws_valid_question.json", "r") as f:
+with open("backend/events/ws_valid_IT_Tech_question.json", "r") as f:
     event = json.load(f)
     event["requestContext"]["connectionId"] = connectionId
 
@@ -53,7 +53,7 @@ print("Lambda returned:", response)
     
 
 #asks for help -> forward to Genesys
-with open("backend/events/ws_rejects_help.json", "r") as f:
+with open("backend/events/ws_accepts_help.json", "r") as f:
     event = json.load(f)
     event["requestContext"]["connectionId"] = connectionId
 

@@ -441,8 +441,17 @@
                     - bedrock:GetModelCustomizationJob
                     - bedrock:ListModelCustomizationJobs
                   Resource: "*"
-
-               
+#####################################################
+# SQS Queues
+#####################################################
+    InboundMessagesQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: InboundMessages
+        VisibilityTimeout: 30
+        MessageRetentionPeriod: 345600   # 4 days
+        ReceiveMessageWaitTimeSeconds: 20
+             
   ############################################################
   # Roles
   #############################################################
