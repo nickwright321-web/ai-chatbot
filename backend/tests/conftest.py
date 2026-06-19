@@ -1,17 +1,11 @@
-import pytest
-import boto3
+# IMPORTANT:
+# Mock boto3 BEFORE any application modules are imported.
+# This prevents DynamoDB clients from being created during test collection.
 
-# mock boto3 class for running tests from github
+import sys
+from unittest.mock import MagicMock
 
-@pytest.fixture(autouse=True)
-def mock_boto3(monkeypatch):
-    """Prevent boto3 from creating real AWS clients during tests."""
-
-    class DummyResource:
-        def Table(self, name):
-            return None
-
-    def fake_resource(*args, **kwargs):
-        return DummyResource()
-
-    monkeypatch.setattr(boto3, "resource", fake_resource)
+# Replace boto3 and botocore with harmless mocks
+sys.modules['boto3'] = MagicMock()
+sys.modules['botocore'] = MagicMock()
+sys.modules['botocore.exceptions'] = MagicMock()
