@@ -45,7 +45,7 @@ flowchart LR
     UI --> APIGW
     APIGW --> Processor
 
-    Processor -> AIIHandler
+    Processor -> AIHandler
 
     <!-- Router --> AIHandler
     Router --> GenesysHandler
