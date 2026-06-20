@@ -47,11 +47,6 @@ flowchart LR
 
     Processor -> AIHandler
 
-    <!-- Router --> AIHandler
-    Router --> GenesysHandler
-    Router --> ZoomHandler
-    Router --> InfinityHandler
-    Router --> SNOWHandler -->
 
     AIHandler --> Bedrock
     GenesysHandler --> Genesys
