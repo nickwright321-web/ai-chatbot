@@ -1,12 +1,5 @@
 import type { ReceivedMessage } from "../types/Messages";
 
-const CHAT_WSOCK_URL =
-  "wss://r6uuq83dfk.execute-api.eu-west-2.amazonaws.com/prod?token=abc123&companyId=BigCorp";
-
-// const CHAT_WSOCK_URL =
-//   "wss://gyubbrgk3b.execute-api.eu-west-2.amazonaws.com/prod?token=abc123";
-
-
 export interface WebSocketHandlers {
   onOpen?: () => void;
   onClose?: () => void;
@@ -14,11 +7,11 @@ export interface WebSocketHandlers {
   onError?: (error: Event) => void;
 }
 
-// 🔥 Singleton state
 let ws: WebSocket | null = null;
 let handlers: WebSocketHandlers | null = null;
 
 export function createWebSocket(newHandlers: WebSocketHandlers): WebSocket {
+  const CHAT_WSOCK_URL = window.RUNTIME_CONFIG.websocketUrl;
   handlers = newHandlers;
 
   // If socket already exists, just reuse it

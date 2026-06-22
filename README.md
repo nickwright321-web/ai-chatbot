@@ -20,7 +20,7 @@ flowchart LR
     end
 
     subgraph BE [Backend - AWS Lambda]
-        Processor[Lambda: Chat Processor]
+        ChatProcessor[Lambda: Chat Processor]
         Router[Lambda: Message Router]
         AIHandler[Lambda: AI Plugin - Bedrock]
         GenesysHandler[Lambda: Genesys Plugin]
@@ -43,10 +43,13 @@ flowchart LR
     end
 
     UI --> APIGW
-    APIGW --> Processor
+    APIGW --> Router
 
-    Processor -> AIHandler
-
+    Router --> AIHandler
+    Router --> GenesysHandler
+    Router --> ZoomHandler
+    Router --> InfinityHandler
+    Router --> SNOWHandler
 
     AIHandler --> Bedrock
     GenesysHandler --> Genesys

@@ -13,3 +13,5 @@ TODOs
 9. Encrypt the query strings with HMAC, short token expiry and origin identification    
 10. Whitelisting / VPC
 11. SSO/Authentication!!
+12. Review Deployer permissions
+13. Re-architect inbound processor to split the intent processing out

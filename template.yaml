@@ -27,21 +27,30 @@
 
   Parameters:
 
+    FrontendOACId:
+      Type: String
+      Description: "Existing CloudFront Origin Access Control ID"
+      Default: "E2C2WJBFKZQ5VI"
+   
     AIModel:
       Type: String
       Default: mistral.mistral-7b-instruct-v0:2
   
     ConnectionsTableName:
       Type: String
-      Default: WS_Chat_Connections
+      Default: ChatConnections
+
+    ChatHistoryTableName:
+      Type: String
+      Default: ChatHistory
+
+    ConversationMapTableName:
+      Type: String
+      Default: CCConversationMap
 
     BedrockModelId:
       Type: String
       Default: "mistral.mistral-7b-instruct-v0:2"
-
-    ServiceNowBaseUrl:
-      Type: String
-      Default: https://your-instance.service-now.com
 
     GenesysBaseUrl:
       Type: String
@@ -69,10 +78,10 @@
     # This table maps Genesys conversation IDs to WebSocket connection IDs
     # so it can route messages back to the correct customer
 
-    GenesysConversationMap:
+    CCConversationMap:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: GenesysConversationMap
+        TableName: !Ref ConversationMapTableName
         BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
           - AttributeName: genesysConversationId
@@ -91,7 +100,7 @@
     ChatHistory:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ChatHistory
+        TableName: !Ref ChatHistoryTableName
         BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
           - AttributeName: connectionId
@@ -194,7 +203,7 @@
       Type: AWS::Serverless::Function
       Properties:
         CodeUri: backend/src/
-        Handler: app.lambda_handler
+        Handler: connection_handler.app.lambda_handler
         Environment:
           Variables:
             CONNECTIONS_TABLE_NAME: !Ref ConnectionsTableName
@@ -388,6 +397,8 @@
 
     BobTrainingBucket:
       Type: AWS::S3::Bucket
+      DeletionPolicy: Retain
+      UpdateReplacePolicy: Retain
       Properties:
         BucketName: !Sub "bob-training-data-${AWS::AccountId}-${AWS::Region}"
         PublicAccessBlockConfiguration:
@@ -503,7 +514,86 @@
                     - lambda:InvokeFunction
                   Resource: "*"
 
+  #############################################################
+  # Frontend Hosting (React App)
+  #############################################################
+
+    FrontendBucket:
+      Type: AWS::S3::Bucket
+      DeletionPolicy: Delete
+      UpdateReplacePolicy: Delete
+      Properties:
+        BucketName: !Sub "ai-chatbot-frontend-${AWS::AccountId}-${AWS::Region}"
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          BlockPublicPolicy: true
+          IgnorePublicAcls: true
+          RestrictPublicBuckets: true
+        WebsiteConfiguration:
+          IndexDocument: index.html
+          ErrorDocument: index.html
+      DeletionPolicy: Retain
+      UpdateReplacePolicy: Retain
+
+    FrontendBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      DependsOn:  FrontendDistribution
+      Properties:
+        Bucket: !Ref FrontendBucket
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            # Allow CloudFront distribution to access the bucket
+            - Sid: AllowCloudFrontAccess
+              Effect: Allow
+              Principal:
+                Service: cloudfront.amazonaws.com
+              Action: s3:GetObject
+              Resource: !Sub "${FrontendBucket.Arn}/*"
+              Condition:
+                StringEquals:
+                  AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}"
+
+            # Allow CloudFront OAC to access the bucket
+            - Sid: AllowCloudFrontOAC
+              Effect: Allow
+              Principal:
+                Service: cloudfront.amazonaws.com
+              Action: s3:GetObject
+              Resource: !Sub "${FrontendBucket.Arn}/*"
+              Condition:
+                StringEquals:
+                  AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:origin-access-control/${FrontendOACId}"
+
+    FrontendDistribution:
+      Type: AWS::CloudFront::Distribution
+      Properties:
+        DistributionConfig:
+          Enabled: true
+          DefaultRootObject: index.html
+          Origins:
+            - Id: FrontendOrigin
+              DomainName: !GetAtt FrontendBucket.RegionalDomainName
+              S3OriginConfig: {}
+              OriginAccessControlId: !Ref FrontendOACId
+          DefaultCacheBehavior:
+            TargetOriginId: FrontendOrigin
+            ViewerProtocolPolicy: redirect-to-https
+            AllowedMethods: [GET, HEAD]
+            CachedMethods: [GET, HEAD]
+            Compress: true
+            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # AWS Managed CachingOptimized
+          ViewerCertificate:
+            CloudFrontDefaultCertificate: true
+          PriceClass: PriceClass_100
+
+
   Outputs:
+  
+    FrontendURL:
+      Description: The client app URL
+      Value: !Sub "aws bedrock start-model-customization-job --region ${AWS::Region} --job-name bob-training --custom-model-name bob-v1 --base-model-identifier mistral.mistral-7b-instruct-v0:2 --training-data-s3-uri s3://${BobTrainingBucket}/bob-training.jsonl --role-arn ${BedrockCustomizationRole.Arn}"
+      
     WebSocketEndpoint:
       Description: WebSocket URL for the chat frontend
       Value: !Sub "wss://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/prod"
