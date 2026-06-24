@@ -1,6 +1,6 @@
 import os
-from InboundDispatcher.cc_adapters.Genesys import GenesysAdapter
-from InboundDispatcher.cc_adapters.MockCC import MockCCAdapter
+from backend.src.InboundDispatcher.cc_adapters.Genesys import GenesysAdapter
+from backend.src.InboundDispatcher.cc_adapters.MockCC import MockCCAdapter
 
 OUTBOUND_SQS_QUEUE = os.environ.get("OUTBOUND_SQS_QUEUE", "OutbondQueue")
 

@@ -1,0 +1,21 @@
+{
+    "Records": [
+        {
+            "messageId": "82f65cf5-bf08-4541-88f3-ac4fb4e5f0f3",
+            "receiptHandle": "AQEBdnlVBdfDyrCS3VbPS/ykcc/bxiB7Z3EEGV23X1MumeAda8lvjruSTx1kAzryZitXLxtQXp2i6CRD37pVF+Z8LwOGm2RfJ3OU/nfiTm9kPrVLBG8Xsc6KOuEwi5HKgdiDfYDASsxygF/mv4LgD4jwqyKUL02HnpAw8sh4RpJnIqOl84bLAMHn3FZtdwTe9gSlaTSGFgVX2kVe65aUEZQeGEK5PwK8WOfWzrKewuxeXcb2sACtLT6t3mgkNuUCbzeeVZWLhjXAjC9tGPzw/4Ct/hXZzNXsN3yU0f5lgt8yE1nppPGD214Dv1DynxR4oCfW2DnXtgWvzIo0PrJPknW7fIpYniwQO8n/+xNeXSlNbuyqkzHB1RV7b0nlBB9RnBFo51DKsfAJEHG32vikvOv8bA==",
+            "body": "{\"connectionId\": \"gR9MIG9KsWeIKEiGPA==\", \"companyId\": \"BigCorp\", \"userMessage\": \"I'm Bob. I love bananas. How can I help today?\", \"intent\": \"WELCOME\", \"timestamp\": \"2026-06-24T08:04:22.214104+00:00\"}",
+            "attributes": {
+                "ApproximateReceiveCount": "1",
+                "AWSTraceHeader": "Root=1-6a3b8f84-00a164dc5463e54f279c03e3;Parent=03f704f9d82cd00f;Sampled=0;Lineage=1:2484d72a:0",
+                "SentTimestamp": "1782288262307",
+                "SenderId": "AROAR5ZKY7R3SMOJBATWJ:ai-chatbot-ChatProcessor-mkeP5ysRXD4U",
+                "ApproximateFirstReceiveTimestamp": "1782288262315"
+            },
+            "messageAttributes": {},
+            "md5OfBody": "d3b78fb3cdc1789cb1b2a3efbccfcd32",
+            "eventSource": "aws:sqs",
+            "eventSourceARN": "arn:aws:sqs:eu-west-2:132696833143:InboundMessages",
+            "awsRegion": "eu-west-2"
+        }
+    ]
+}

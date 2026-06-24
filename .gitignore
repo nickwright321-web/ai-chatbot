@@ -260,5 +260,9 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+#backup files
+*.bak/
+
+
 
 # End of https://www.gitignore.io/api/osx,linux,python,windows,pycharm,visualstudiocode

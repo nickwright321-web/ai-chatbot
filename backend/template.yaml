@@ -6,17 +6,6 @@
   # Run sam deploy and then run 
   # aws s3 cp Bedrock/bob-training.jsonl s3://bob-training-data-<acct>-<region>/
   # to upload the training data for Bob customization
-  #
-  # After the stack is deployed, run the following
-  # outputs as cli commands to start the Bedrock model customization job:
-  # UploadTrainingDataCommand
-  # StartModelTrainingCommand (only once fine tuning is enabled in eu-west-2)
-  # Then run the following to load the AI guardrailsw
-  # aws bedrock create-guardrail --cli-input-json file://Bedrock/computer-guardrail.json
-  # then
-  # aws bedrock publish-guardrail --guardrail-identifier ekricr3x6tsa --version 1
-
-
   #############################################################
 
   Globals:
@@ -26,11 +15,6 @@
       MemorySize: 256
 
   Parameters:
-
-    FrontendOACId:
-      Type: String
-      Description: "Existing CloudFront Origin Access Control ID"
-      Default: "E2C2WJBFKZQ5VI"
    
     AIModel:
       Type: String
@@ -114,6 +98,28 @@
             KeyType: RANGE
         SSESpecification:
           SSEEnabled: true
+
+    ChatSessionsTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ChatSessions
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: connectionId
+            AttributeType: S
+          - AttributeName: sortKey
+            AttributeType: S
+        KeySchema:
+          - AttributeName: connectionId
+            KeyType: HASH
+          - AttributeName: sortKey
+            KeyType: RANGE
+        TimeToLiveSpecification:
+          AttributeName: ttl
+          Enabled: true
+        SSESpecification:
+          SSEEnabled: true
+   
 
     ###########################################################
     # WebSocket API
@@ -202,7 +208,7 @@
     ConnectionHandler:
       Type: AWS::Serverless::Function
       Properties:
-        CodeUri: backend/src/
+        CodeUri: src/
         Handler: connection_handler.app.lambda_handler
         Environment:
           Variables:
@@ -240,12 +246,13 @@
     ChatProcessor:
       Type: AWS::Serverless::Function
       Properties:
-        CodeUri: backend/src/
+        CodeUri: src/
         Handler: chat_processor.app.lambda_handler
         Environment:
           Variables:
-            CONNECTIONS_TABLE_NAME: !Ref ConnectionsTableName
-            AI_MODEL: !Ref AIModel
+            QUEUE_NAME: !Ref InboundMessagesQueue
+            BOB_PROMPT: "s3://bob-training-data-132696833143-eu-west-2/bob-prompt.txt"
+            ENGINE_ID: "Mistral7b2"
         Policies:
           - DynamoDBCrudPolicy:
               TableName: !Ref ConnectionsTableName
@@ -296,6 +303,7 @@
                 - dynamodb:GetItem
               Resource:
                  - !GetAtt ChatHistory.Arn
+                 - !GetAtt ChatSessionsTable.Arn
               
 
     ChatProcessorInvokePermission:
@@ -306,6 +314,59 @@
         Principal: apigateway.amazonaws.com
         SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*/*
 
+  #############################################################
+  # Lambda Intent Router (queues messages for forwarding to CC)
+  #############################################################
+
+    IntentRouter:
+      Type: AWS::Serverless::Function
+      Properties:
+        CodeUri: src/
+        Handler: intent_router.app.lambda_handler
+        Environment:
+          Variables:
+            QUEUE_NAME: !Ref InboundCCForwarderQueue
+
+        Events:
+          InboundMessagesEvent:
+            Type: SQS
+            Properties:
+              Queue: !GetAtt InboundMessagesQueue.Arn
+              BatchSize: 1
+
+        Policies:
+          # 1. Read/write to ChatSessions table
+          - DynamoDBCrudPolicy:
+              TableName: !Ref ChatSessionsTable
+          
+          # 2. Basic Lambda logging
+          - AWSLambdaBasicExecutionRole
+
+          # 3. Allow sending confirmation prompts via WebSocket
+          - Statement:
+              Effect: Allow
+              Action:
+                - execute-api:ManageConnections
+              Resource:
+                - !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*/*/@connections/*"
+
+
+          # 4. Allow reading from the inbound SQS queue
+          - Statement:
+              Effect: Allow
+              Action:
+                - sqs:ReceiveMessage
+                - sqs:DeleteMessage
+                - sqs:GetQueueAttributes
+              Resource: !GetAtt InboundMessagesQueue.Arn
+
+          # 5. Allow forwarding approved messages to CC queue
+          - Statement:
+              Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Resource: !GetAtt InboundCCForwarderQueue.Arn  
+          
   ############################################################
   # Websocket Authorizer
   ############################################################
@@ -313,7 +374,7 @@
     WebSocketAuthorizer:
       Type: AWS::Serverless::Function
       Properties:
-        CodeUri: backend/src/authoriser/
+        CodeUri: src/authoriser/
         Handler: app.lambda_handler
         Runtime: python3.11
         Policies:
@@ -462,6 +523,46 @@
         VisibilityTimeout: 30
         MessageRetentionPeriod: 345600   # 4 days
         ReceiveMessageWaitTimeSeconds: 20
+        
+    InboundMessagesQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        Queues:
+          - !Ref InboundMessagesQueue
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                AWS: !GetAtt ChatProcessorRole.Arn
+              Action:
+                - sqs:SendMessage
+                - sqs:GetQueueUrl
+              Resource: !GetAtt InboundMessagesQueue.Arn
+
+    InboundCCForwarderQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: CCForwarder
+        VisibilityTimeout: 30
+        MessageRetentionPeriod: 345600   # 4 days
+        ReceiveMessageWaitTimeSeconds: 20
+        
+    InboundCCForwarderQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        Queues:
+          - !Ref InboundCCForwarderQueue
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                AWS: !GetAtt ChatProcessorRole.Arn
+              Action:
+                - sqs:SendMessage
+                - sqs:GetQueueUrl
+              Resource: !GetAtt InboundCCForwarderQueue.Arn
 
     OutboundMessagesQueue:
       Type: AWS::SQS::Queue
@@ -514,85 +615,7 @@
                     - lambda:InvokeFunction
                   Resource: "*"
 
-  #############################################################
-  # Frontend Hosting (React App)
-  #############################################################
-
-    FrontendBucket:
-      Type: AWS::S3::Bucket
-      DeletionPolicy: Delete
-      UpdateReplacePolicy: Delete
-      Properties:
-        BucketName: !Sub "ai-chatbot-frontend-${AWS::AccountId}-${AWS::Region}"
-        PublicAccessBlockConfiguration:
-          BlockPublicAcls: true
-          BlockPublicPolicy: true
-          IgnorePublicAcls: true
-          RestrictPublicBuckets: true
-        WebsiteConfiguration:
-          IndexDocument: index.html
-          ErrorDocument: index.html
-      DeletionPolicy: Retain
-      UpdateReplacePolicy: Retain
-
-    FrontendBucketPolicy:
-      Type: AWS::S3::BucketPolicy
-      DependsOn:  FrontendDistribution
-      Properties:
-        Bucket: !Ref FrontendBucket
-        PolicyDocument:
-          Version: "2012-10-17"
-          Statement:
-            # Allow CloudFront distribution to access the bucket
-            - Sid: AllowCloudFrontAccess
-              Effect: Allow
-              Principal:
-                Service: cloudfront.amazonaws.com
-              Action: s3:GetObject
-              Resource: !Sub "${FrontendBucket.Arn}/*"
-              Condition:
-                StringEquals:
-                  AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}"
-
-            # Allow CloudFront OAC to access the bucket
-            - Sid: AllowCloudFrontOAC
-              Effect: Allow
-              Principal:
-                Service: cloudfront.amazonaws.com
-              Action: s3:GetObject
-              Resource: !Sub "${FrontendBucket.Arn}/*"
-              Condition:
-                StringEquals:
-                  AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:origin-access-control/${FrontendOACId}"
-
-    FrontendDistribution:
-      Type: AWS::CloudFront::Distribution
-      Properties:
-        DistributionConfig:
-          Enabled: true
-          DefaultRootObject: index.html
-          Origins:
-            - Id: FrontendOrigin
-              DomainName: !GetAtt FrontendBucket.RegionalDomainName
-              S3OriginConfig: {}
-              OriginAccessControlId: !Ref FrontendOACId
-          DefaultCacheBehavior:
-            TargetOriginId: FrontendOrigin
-            ViewerProtocolPolicy: redirect-to-https
-            AllowedMethods: [GET, HEAD]
-            CachedMethods: [GET, HEAD]
-            Compress: true
-            CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6 # AWS Managed CachingOptimized
-          ViewerCertificate:
-            CloudFrontDefaultCertificate: true
-          PriceClass: PriceClass_100
-
-
   Outputs:
-  
-    FrontendURL:
-      Description: The client app URL
-      Value: !Sub "aws bedrock start-model-customization-job --region ${AWS::Region} --job-name bob-training --custom-model-name bob-v1 --base-model-identifier mistral.mistral-7b-instruct-v0:2 --training-data-s3-uri s3://${BobTrainingBucket}/bob-training.jsonl --role-arn ${BedrockCustomizationRole.Arn}"
       
     WebSocketEndpoint:
       Description: WebSocket URL for the chat frontend

@@ -1,0 +1,761 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AI ChatBot - WebSocket + Bedrock + ServiceNow + Genesys
+Globals:
+  Function:
+    Runtime: python3.11
+    Timeout: 15
+    MemorySize: 256
+Parameters:
+  FrontendOACId:
+    Type: String
+    Description: Existing CloudFront Origin Access Control ID
+    Default: E2C2WJBFKZQ5VI
+  AIModel:
+    Type: String
+    Default: mistral.mistral-7b-instruct-v0:2
+  ConnectionsTableName:
+    Type: String
+    Default: ChatConnections
+  ChatHistoryTableName:
+    Type: String
+    Default: ChatHistory
+  ConversationMapTableName:
+    Type: String
+    Default: CCConversationMap
+  BedrockModelId:
+    Type: String
+    Default: mistral.mistral-7b-instruct-v0:2
+  GenesysBaseUrl:
+    Type: String
+    Default: https://api.mypurecloud.com
+Resources:
+  ConnectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName:
+        Ref: ConnectionsTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+      - AttributeName: connectionId
+        AttributeType: S
+      KeySchema:
+      - AttributeName: connectionId
+        KeyType: HASH
+    Metadata:
+      SamResourceId: ConnectionsTable
+  CCConversationMap:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName:
+        Ref: ConversationMapTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+      - AttributeName: genesysConversationId
+        AttributeType: S
+      KeySchema:
+      - AttributeName: genesysConversationId
+        KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+    Metadata:
+      SamResourceId: CCConversationMap
+  ChatHistory:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName:
+        Ref: ChatHistoryTableName
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+      - AttributeName: connectionId
+        AttributeType: S
+      - AttributeName: timestamp
+        AttributeType: N
+      KeySchema:
+      - AttributeName: connectionId
+        KeyType: HASH
+      - AttributeName: timestamp
+        KeyType: RANGE
+      SSESpecification:
+        SSEEnabled: true
+    Metadata:
+      SamResourceId: ChatHistory
+  ChatSessionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: ChatSessions
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+      - AttributeName: connectionId
+        AttributeType: S
+      - AttributeName: sortKey
+        AttributeType: S
+      KeySchema:
+      - AttributeName: connectionId
+        KeyType: HASH
+      - AttributeName: sortKey
+        KeyType: RANGE
+      TimeToLiveSpecification:
+        AttributeName: ttl
+        Enabled: true
+      SSESpecification:
+        SSEEnabled: true
+    Metadata:
+      SamResourceId: ChatSessionsTable
+  WebSocketApi:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: AIChatBotWebSocket
+      ProtocolType: WEBSOCKET
+      RouteSelectionExpression: $request.body.action
+    Metadata:
+      SamResourceId: WebSocketApi
+  WebSocketStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId:
+        Ref: WebSocketApi
+      StageName: prod
+      AutoDeploy: true
+      DefaultRouteSettings:
+        LoggingLevel: INFO
+        DataTraceEnabled: true
+    Metadata:
+      SamResourceId: WebSocketStage
+  ConnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId:
+        Ref: WebSocketApi
+      RouteKey: $connect
+      AuthorizationType: CUSTOM
+      AuthorizerId:
+        Ref: WebSocketAuthorizerConfig
+      Target:
+        Fn::Sub: integrations/${ConnectIntegration}
+    Metadata:
+      SamResourceId: ConnectRoute
+  DisconnectRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId:
+        Ref: WebSocketApi
+      RouteKey: $disconnect
+      Target:
+        Fn::Sub: integrations/${DisconnectIntegration}
+    Metadata:
+      SamResourceId: DisconnectRoute
+  ChatProcessorRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId:
+        Ref: WebSocketApi
+      RouteKey: sendMessage
+      Target:
+        Fn::Sub: integrations/${ChatProcessorIntegration}
+    Metadata:
+      SamResourceId: ChatProcessorRoute
+  ConnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId:
+        Ref: WebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConnectionHandler.Arn}/invocations
+      CredentialsArn:
+        Fn::GetAtt:
+        - WebSocketIntegrationInvokeRole
+        - Arn
+      PayloadFormatVersion: '1.0'
+    Metadata:
+      SamResourceId: ConnectIntegration
+  DisconnectIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId:
+        Ref: WebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConnectionHandler.Arn}/invocations
+      CredentialsArn:
+        Fn::GetAtt:
+        - WebSocketIntegrationInvokeRole
+        - Arn
+      PayloadFormatVersion: '1.0'
+    Metadata:
+      SamResourceId: DisconnectIntegration
+  ChatProcessorIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId:
+        Ref: WebSocketApi
+      IntegrationType: AWS_PROXY
+      IntegrationUri:
+        Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ChatProcessor.Arn}/invocations
+      CredentialsArn:
+        Fn::GetAtt:
+        - WebSocketIntegrationInvokeRole
+        - Arn
+      PayloadFormatVersion: '1.0'
+    Metadata:
+      SamResourceId: ChatProcessorIntegration
+  ConnectionHandler:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://nick-ai-chatbot-artifacts/8b2a2adf034b93f9932851b8ff9d90a6
+      Handler: connection_handler.app.lambda_handler
+      Environment:
+        Variables:
+          CONNECTIONS_TABLE_NAME:
+            Ref: ConnectionsTableName
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: ConnectionsTableName
+      - AWSLambdaBasicExecutionRole
+      - Statement:
+          Effect: Allow
+          Action:
+          - execute-api:ManageConnections
+          Resource: arn:aws:execute-api:*:*:*/@connections/*
+    Metadata:
+      SamResourceId: ConnectionHandler
+  ConnectionHandlerInvokePermissionConnect:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: ConnectionHandler
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*/$connect
+    Metadata:
+      SamResourceId: ConnectionHandlerInvokePermissionConnect
+  ConnectionHandlerInvokePermissionDisconnect:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: ConnectionHandler
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*/$disconnect
+    Metadata:
+      SamResourceId: ConnectionHandlerInvokePermissionDisconnect
+  ChatProcessor:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://nick-ai-chatbot-artifacts/8b2a2adf034b93f9932851b8ff9d90a6
+      Handler: chat_processor.app.lambda_handler
+      Environment:
+        Variables:
+          QUEUE_NAME:
+            Ref: InboundMessagesQueue
+          BOB_PROMPT: s3://bob-training-data-132696833143-eu-west-2/bob-prompt.txt
+          ENGINE_ID: Mistral7b2
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: ConnectionsTableName
+      - AWSLambdaBasicExecutionRole
+      - Statement:
+          Effect: Allow
+          Action:
+          - execute-api:ManageConnections
+          Resource: arn:aws:execute-api:*:*:*/@connections/*
+      - Statement:
+          Effect: Allow
+          Action:
+          - bedrock:InvokeModel
+          - bedrock:InvokeModelWithResponseStream
+          Resource:
+            Fn::Sub: arn:aws:bedrock:eu-west-2::foundation-model/${AIModel}
+      - Statement:
+          Effect: Allow
+          Action:
+          - bedrock:CreateGuardrail
+          - bedrock:UpdateGuardrail
+          - bedrock:GetGuardrail
+          - bedrock:ListGuardrails
+          - bedrock:CreateGuardrailVersion
+          - bedrock:ApplyGuardrail
+          Resource: '*'
+      - Statement:
+        - Sid: S3ListBucketPermissions
+          Effect: Allow
+          Action:
+          - s3:ListBucket
+          Resource:
+          - Fn::Sub: ${BobTrainingBucket.Arn}
+      - Statement:
+        - Sid: S3Permissions
+          Effect: Allow
+          Action:
+          - s3:GetObject
+          - s3:PutObject
+          Resource:
+          - Fn::Sub: ${BobTrainingBucket.Arn}/*
+      - Statement:
+        - Sid: DynamoDBPermissions
+          Effect: Allow
+          Action:
+          - dynamodb:Query
+          - dynamodb:PutItem
+          - dynamodb:GetItem
+          Resource:
+          - Fn::GetAtt:
+            - ChatHistory
+            - Arn
+    Metadata:
+      SamResourceId: ChatProcessor
+  ChatProcessorInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: ChatProcessor
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*/*
+    Metadata:
+      SamResourceId: ChatProcessorInvokePermission
+  IntentRouter:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://nick-ai-chatbot-artifacts/8b2a2adf034b93f9932851b8ff9d90a6
+      Handler: intent_router.app.lambda_handler
+      Environment:
+        Variables:
+          QUEUE_NAME:
+            Ref: InboundCCForwarderQueue
+      Events:
+        InboundMessagesEvent:
+          Type: SQS
+          Properties:
+            Queue:
+              Fn::GetAtt:
+              - InboundMessagesQueue
+              - Arn
+            BatchSize: 1
+      Policies:
+      - DynamoDBCrudPolicy:
+          TableName:
+            Ref: ChatSessionsTable
+      - AWSLambdaBasicExecutionRole
+      - Statement:
+          Effect: Allow
+          Action:
+          - sqs:ReceiveMessage
+          - sqs:DeleteMessage
+          - sqs:GetQueueAttributes
+          Resource:
+            Fn::GetAtt:
+            - InboundMessagesQueue
+            - Arn
+      - Statement:
+          Effect: Allow
+          Action:
+          - sqs:SendMessage
+          Resource:
+            Fn::GetAtt:
+            - InboundCCForwarderQueue
+            - Arn
+    Metadata:
+      SamResourceId: IntentRouter
+  WebSocketAuthorizer:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: s3://nick-ai-chatbot-artifacts/d6a5807e185a31269a567aebc867a7e6
+      Handler: app.lambda_handler
+      Runtime: python3.11
+      Policies:
+      - AWSLambdaBasicExecutionRole
+    Metadata:
+      SamResourceId: WebSocketAuthorizer
+  WebSocketIntegrationInvokeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: apigateway.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: AllowInvokeConnectLambda
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action: lambda:InvokeFunction
+            Resource:
+            - Fn::GetAtt:
+              - ConnectionHandler
+              - Arn
+            - Fn::Sub: ${ConnectionHandler.Arn}:*
+            - Fn::GetAtt:
+              - ChatProcessor
+              - Arn
+            - Fn::Sub: ${ChatProcessor.Arn}:*
+    Metadata:
+      SamResourceId: WebSocketIntegrationInvokeRole
+  WebSocketAuthorizerConfig:
+    Type: AWS::ApiGatewayV2::Authorizer
+    Properties:
+      ApiId:
+        Ref: WebSocketApi
+      AuthorizerType: REQUEST
+      Name: WebSocketOAuthAuthorizer
+      IdentitySource:
+      - route.request.querystring.token
+      AuthorizerUri:
+        Fn::Sub:
+        - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${LambdaArn}/invocations
+        - LambdaArn:
+            Fn::GetAtt:
+            - WebSocketAuthorizer
+            - Arn
+      AuthorizerCredentialsArn:
+        Fn::GetAtt:
+        - WebSocketAuthorizerInvokeRole
+        - Arn
+    Metadata:
+      SamResourceId: WebSocketAuthorizerConfig
+  WebSocketAuthorizerInvokeRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: apigateway.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: AllowInvokeAuthorizerLambda
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action: lambda:InvokeFunction
+            Resource:
+              Fn::GetAtt:
+              - WebSocketAuthorizer
+              - Arn
+    Metadata:
+      SamResourceId: WebSocketAuthorizerInvokeRole
+  WebSocketAuthorizerInvokePermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Ref: WebSocketAuthorizer
+      Principal: apigateway.amazonaws.com
+      SourceArn:
+        Fn::Sub: arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/authorizers/*
+    Metadata:
+      SamResourceId: WebSocketAuthorizerInvokePermission
+  WebSocketSecret:
+    Type: AWS::SecretsManager::Secret
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      Name: ai-chatbot-websocket-secret
+      Description: Secret used for WebSocket authorizer demo
+      SecretString: abc123
+    Metadata:
+      SamResourceId: WebSocketSecret
+  BobTrainingBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName:
+        Fn::Sub: bob-training-data-${AWS::AccountId}-${AWS::Region}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+    Metadata:
+      SamResourceId: BobTrainingBucket
+  BedrockCustomizationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: BedrockCustomizationRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - bedrock.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Policies:
+      - PolicyName: BedrockCustomizationAccess
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - s3:GetObject
+            - s3:ListBucket
+            Resource:
+            - Fn::Sub: ${BobTrainingBucket.Arn}
+            - Fn::Sub: ${BobTrainingBucket.Arn}/*
+          - Effect: Allow
+            Action:
+            - s3:PutObject
+            Resource:
+            - Fn::Sub: ${BobTrainingBucket.Arn}/*
+          - Effect: Allow
+            Action:
+            - bedrock:CreateModelCustomizationJob
+            - bedrock:GetModelCustomizationJob
+            - bedrock:ListModelCustomizationJobs
+            Resource: '*'
+    Metadata:
+      SamResourceId: BedrockCustomizationRole
+  InboundMessagesQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: InboundMessages
+      VisibilityTimeout: 30
+      MessageRetentionPeriod: 345600
+      ReceiveMessageWaitTimeSeconds: 20
+    Metadata:
+      SamResourceId: InboundMessagesQueue
+  InboundMessagesQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+      - Ref: InboundMessagesQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS:
+              Fn::GetAtt:
+              - ChatProcessorRole
+              - Arn
+          Action:
+          - sqs:SendMessage
+          - sqs:GetQueueUrl
+          Resource:
+            Fn::GetAtt:
+            - InboundMessagesQueue
+            - Arn
+    Metadata:
+      SamResourceId: InboundMessagesQueuePolicy
+  InboundCCForwarderQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: CCForwarder
+      VisibilityTimeout: 30
+      MessageRetentionPeriod: 345600
+      ReceiveMessageWaitTimeSeconds: 20
+    Metadata:
+      SamResourceId: InboundCCForwarderQueue
+  InboundCCForwarderQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+      - Ref: InboundCCForwarderQueue
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS:
+              Fn::GetAtt:
+              - ChatProcessorRole
+              - Arn
+          Action:
+          - sqs:SendMessage
+          - sqs:GetQueueUrl
+          Resource:
+            Fn::GetAtt:
+            - InboundCCForwarderQueue
+            - Arn
+    Metadata:
+      SamResourceId: InboundCCForwarderQueuePolicy
+  OutboundMessagesQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: OutboundMessages
+      VisibilityTimeout: 30
+      MessageRetentionPeriod: 345600
+      ReceiveMessageWaitTimeSeconds: 20
+    Metadata:
+      SamResourceId: OutboundMessagesQueue
+  ApiGatewayCloudWatchRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ApiGatewayCloudWatchRole
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: apigateway.amazonaws.com
+          Action: sts:AssumeRole
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
+    Metadata:
+      SamResourceId: ApiGatewayCloudWatchRole
+  ApiGatewayAccount:
+    Type: AWS::ApiGateway::Account
+    Properties:
+      CloudWatchRoleArn:
+        Fn::GetAtt:
+        - ApiGatewayCloudWatchRole
+        - Arn
+    Metadata:
+      SamResourceId: ApiGatewayAccount
+  WebSocketApiExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: apigateway.amazonaws.com
+          Action: sts:AssumeRole
+      Policies:
+      - PolicyName: WebSocketApiExecutionPolicy
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - lambda:InvokeFunction
+            Resource: '*'
+    Metadata:
+      SamResourceId: WebSocketApiExecutionRole
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      BucketName:
+        Fn::Sub: ai-chatbot-frontend-${AWS::AccountId}-${AWS::Region}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+    Metadata:
+      SamResourceId: FrontendBucket
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    DependsOn: FrontendDistribution
+    Properties:
+      Bucket:
+        Ref: FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Sid: AllowCloudFrontAccess
+          Effect: Allow
+          Principal:
+            Service: cloudfront.amazonaws.com
+          Action: s3:GetObject
+          Resource:
+            Fn::Sub: ${FrontendBucket.Arn}/*
+          Condition:
+            StringEquals:
+              AWS:SourceArn:
+                Fn::Sub: arn:aws:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}
+        - Sid: AllowCloudFrontOAC
+          Effect: Allow
+          Principal:
+            Service: cloudfront.amazonaws.com
+          Action: s3:GetObject
+          Resource:
+            Fn::Sub: ${FrontendBucket.Arn}/*
+          Condition:
+            StringEquals:
+              AWS:SourceArn:
+                Fn::Sub: arn:aws:cloudfront::${AWS::AccountId}:origin-access-control/${FrontendOACId}
+    Metadata:
+      SamResourceId: FrontendBucketPolicy
+  FrontendDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        Origins:
+        - Id: FrontendOrigin
+          DomainName:
+            Fn::GetAtt:
+            - FrontendBucket
+            - RegionalDomainName
+          S3OriginConfig: {}
+          OriginAccessControlId:
+            Ref: FrontendOACId
+        DefaultCacheBehavior:
+          TargetOriginId: FrontendOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+          - GET
+          - HEAD
+          CachedMethods:
+          - GET
+          - HEAD
+          Compress: true
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6
+        ViewerCertificate:
+          CloudFrontDefaultCertificate: true
+        PriceClass: PriceClass_100
+    Metadata:
+      SamResourceId: FrontendDistribution
+Outputs:
+  FrontendURL:
+    Description: URL of the deployed frontend
+    Value:
+      Fn::Sub: https://${FrontendDistribution.DomainName}
+  WebSocketEndpoint:
+    Description: WebSocket URL for the chat frontend
+    Value:
+      Fn::Sub: wss://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/prod
+  BobsTrainingBucketName:
+    Description: S3 Bucket for Bob training data
+    Value:
+      Ref: BobTrainingBucket
+  BedrockCustomizationRole:
+    Description: IAM Role for Bedrock customization
+    Value:
+      Fn::GetAtt:
+      - BedrockCustomizationRole
+      - Arn
+  UploadTrainingDataCommand:
+    Description: PowerShell command to upload the training JSONL file
+    Value:
+      Fn::Sub: aws s3 cp Bedrock/bob-training.jsonl s3://${BobTrainingBucket}/bob-training.jsonl
+  UploadBobPromptCommand:
+    Description: PowerShell command to upload the training JSONL file
+    Value:
+      Fn::Sub: aws s3 cp Bedrock/bob-prompt.txt s3://${BobTrainingBucket}/bob-prompt.txt
+  StartModelTrainingCommand:
+    Description: PowerShell command to start the Bedrock model customization job
+    Value:
+      Fn::Sub: aws bedrock start-model-customization-job --region ${AWS::Region} --job-name
+        bob-training --custom-model-name bob-v1 --base-model-identifier mistral.mistral-7b-instruct-v0:2
+        --training-data-s3-uri s3://${BobTrainingBucket}/bob-training.jsonl --role-arn
+        ${BedrockCustomizationRole.Arn}

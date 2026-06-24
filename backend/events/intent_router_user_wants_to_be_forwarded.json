@@ -1,0 +1,22 @@
+{
+    "Records": [
+        {
+            "messageId": "4b6ae50c-1c19-4138-b73e-22adf4b08e92",
+            "receiptHandle": "AQEBIFeZyZ2+vnijrGGlOJvVegtdi+PQDZxsQSSQrosl/1IRYkmzcQXkDoo7NnJxu+7ego1P0CVu7YFiY94T/Io08y3cWnF/MGXVIO4jahDRPcYXrwrx39h2AOU2N9NmektTMD4HKJx686wzg3tDD8c/cjJg7b7O30vObm2kiktQ9v3tFPWToWE7Yr/jMeW2LgtWgJZqi39VafLiSKAhneZBESsDk4s3WXATqNEzS5yPb/47vVS62xOZhWU+eJnO0W/0Tko/xoYTTvytZnSPr980hvJGd3+oN7ow+8vss7mpOt6uy80j8NblRVcpbATKIqQcJNGKh+52+NtjEXV3HlJtPF+bEbZDS+mmQ4eCM2JOSyv2UXZN/TZQ00PfwcTmMHlXnhc9zqV2trl7PldLJks0zA==",
+            "body": "{\"connectionId\": \"gR-qOc8xaWeIKEidEA==\", \"companyId\": \"BigCorp\", \"userMessage\": \"I can forward you to Tech Support.\", \"intent\": \"TECH_SUPPORT\", \"timestamp\": \"2026-06-24T13:25:53.609400+00:00\", \"wsDomain\": \"lzldrcj94l.execute-api.eu-west-2.amazonaws.com\", \"wsStage\": \"prod\"}",
+            "attributes": {
+                "ApproximateReceiveCount": "1",
+                "AWSTraceHeader": "Root=1-6a3bdae0-83db24acb46469a1733c6eda;Parent=0659a1c58df9d7da;Sampled=0;Lineage=1:0cb5dfbe:0",
+                "SentTimestamp": "1782307553612",
+                "SenderId": "AROAR5ZKY7R3VZJPWL3HT:ai-chatbot-backend-ChatProcessor-ehodLFGPg3D7",
+                "ApproximateFirstReceiveTimestamp": "1782307553619"
+            },
+            "messageAttributes": {
+            },
+            "md5OfBody": "995c984c36ee8e2f4b74dc16710c397e",
+            "eventSource": "aws:sqs",
+            "eventSourceARN": "arn:aws:sqs:eu-west-2:132696833143:InboundMessages",
+            "awsRegion": "eu-west-2"
+        }
+    ]
+}

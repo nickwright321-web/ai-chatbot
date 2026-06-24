@@ -55,6 +55,11 @@ aws cloudformation describe-stack-events `
   --region eu-west-2 `
   --max-items 5
 
+aws cloudformation describe-stacks `
+  --stack-name ai-chatbot `
+  --region eu-west-2 `
+  --query "Stacks[0].StackStatus" 
+
 
  rm -rf .aws-sam
  sam build

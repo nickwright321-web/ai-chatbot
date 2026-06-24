@@ -1,13 +1,3 @@
-# ALChatBot
-This is a live chat client demostrating the use of:
-- React/Vite front end
-- A backend that handles live chat conversations between an AI bot and a customer, 
-with a handoff to a live agent if needed.
-- The backend has a plugin architecture, allowing the use of different AI models
-and cc systems such as Genesys, Zoom and Infinity
-
-While it is fully deployable, it is intended for demo purposes and is not production ready. In a real situation, must CC platforms have alternative live chat platforms that would be more appropriate.
-
 ```mermaid
 
 flowchart LR
@@ -100,63 +90,3 @@ flowchart LR
     %% CC Forwarding
     CCQueue --> CCForwarder
     CCForwarder -.-> CCSystem
-
-```
-
-```mermaid
-
-flowchart RL
-    classDef external stroke:#22c55e,stroke-width:2px,color:#ffffff;
-    classDef webapp stroke:#1e3a8a,stroke-width:3px,color:#ffffff;
-
-    subgraph OC [Outbound Chat]
-        direction RL
-        OBP
-        OBD
-        API_REST
-        API_WS
-    end
-
-    subgraph OBP [Outbound Pipeline]
-        direction RL
-        OutboundQueue[SQS: Outbound Queue]
-        DispatcherQueue[SQS: Dispatcher Queue]
-        OutboundProcessor[Lambda: Outbound Processor]
-        CCAdapter[Lambda: CCAdapter - Gen/Zoom/Infinity] 
-        ChatTable[(Chat History)]
-    end
-
-    subgraph OBD [Outbound Dispatcher]
-        direction RL
-        Dispatcher[Lambda: Outbound Dispatcher]
-    end
-
-    subgraph OBCC [Contact Centres]
-        direction RL
-        CC[External: Contact Centres]:::external
-    end
-
-    subgraph API_WS [Websocket]
-        direction RL
-        APIGW_WS([API Gateway])
-        CHAT([$sendMessage])
-    end
-
-    subgraph API_REST [REST]
-        APIGW([API Gateway/POST])      
-    end
-    
-    subgraph FE [Web Application]
-        UI[React/Vite Chat Client]:::webapp
-    end
-
-    CC --> APIGW
-    APIGW --> CCAdapter
-    CCAdapter --> OutboundQueue
-    OutboundQueue --> OutboundProcessor
-    OutboundProcessor --> DispatcherQueue
-    OutboundProcessor --> ChatTable
-    DispatcherQueue --> Dispatcher
-    Dispatcher --> APIGW_WS
-    APIGW_WS --> CHAT
-    CHAT --> UI

@@ -5,6 +5,7 @@ from chat_processor.ChatMessage import ChatMessage
 
 dynamodb = boto3.resource("dynamodb")
 chat_table = dynamodb.Table("ChatHistory")
+chat_sessions_table = dynamodb.Table("ChatSessions")
 
 ################################
 #Chat History functions
@@ -38,26 +39,26 @@ def getChatHistory(connection_id: str, limit: int = 10):
     # Reverse so oldest → newest
     return list(reversed(items[:limit]))
 
-
 ################################
 # Session State functions
 ################################
 
 def loadSessionState(connectionId):
-    resp = chat_table.get_item(
+    resp = chat_sessions_table.get_item(
         Key={
             "connectionId": connectionId,
-            "timestamp": -1
+            "sortKey": "STATE"
         }
     )
     return resp.get("Item")
 
 
+
 def saveSessionState(connectionId, pending_intent):
-    chat_table.put_item(
+    chat_sessions_table.put_item(
         Item={
             "connectionId": connectionId,
-            "timestamp": -1,
+            "sortKey": "STATE",
             "pending_intent": pending_intent,
             "lastUpdated": int(time.time())
         }
@@ -65,9 +66,9 @@ def saveSessionState(connectionId, pending_intent):
 
 
 def clearSessionState(connectionId):
-    chat_table.delete_item(
+    chat_sessions_table.delete_item(
         Key={
             "connectionId": connectionId,
-            "timestamp": -1
+            "sortKey": "STATE"
         }
     )

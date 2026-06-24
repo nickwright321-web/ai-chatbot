@@ -1,0 +1,20 @@
+{
+    "Records": [
+        {
+            "messageId": "97aebbdf-83dd-41c9-a558-6ae776757ec1",
+            "receiptHandle": "AQEBUvOBFMBvcn2qWlXJfU5LfTx+/lXVFcQzqpkhPvbMfc93bIE5EWNE42z8JK+iGerdUhRVFhJj+1hYpgRshxphP9Z51wf8EtpjEupvAZPdB1+rRTDOfX7OrNTlVcFenKq9eO80zpWLlCAeRLtA7Sr5tsQnlXvDaSF5nDaakMdn+hv0fy1E3kuVIlQ9iKG/7Jt10w/XhUl5MP65gUWXa9ZwZ3NlLJ2CYjcfRbaf7zm76Fb6m9pKmFB19GEF6cQwDN2bp2uAQje1PtUPaHriXN2nwsUI7VBctbVV+ugFFuZCQlrr1JulkAu28+FhIHlDZetEhsifPeO8XCcf2nIcNtDUdvjm7MCGcfbVKAdIxJQ/62Mpg0Ea3rIam0/HY50fwXdiW2gmRV4hg5ZZhtF6LBDApw==",
+            "body": "{\"connectionId\": \"gR5bQg5gDWeIKAIdeA==\", \"companyId\": \"BigCorp\", \"userMessage\": \"Hi, I'm Bob. I love bananas. How can I help today?\", \"intent\": \"WELCOME\", \"timestamp\": \"2026-06-23T18:36:46.611633+00:00\"}",
+            "attributes": {
+                "ApproximateReceiveCount": "7",
+                "SentTimestamp": "1782239809597",
+                "SenderId": "AIDAR5ZKY7R3Z4MSVGVKT",
+                "ApproximateFirstReceiveTimestamp": "1782239809606"
+            },
+            "messageAttributes": {},
+            "md5OfBody": "23b6ef7aad5b29294ef9586818411a08",
+            "eventSource": "aws:sqs",
+            "eventSourceARN": "arn:aws:sqs:eu-west-2:132696833143:InboundMessages",
+            "awsRegion": "eu-west-2"
+        }
+    ]
+}
