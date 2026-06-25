@@ -5,10 +5,19 @@ from .ccAdapter import ccAdapter
 logger = logging.getLogger(__name__)
 
 class GenesysAdapter(ccAdapter):
-    """
-    Adapter for sending messages into Genesys Cloud CX via the
-    Open Messaging Inbound Message API.
-    """
+  
+    ROUTING = [
+                    {   "companyId": "BigGenCorp",
+                        "intent": ["TECH_SUPPORT", "SALES"],
+                        "outboundQueueUrl": "http://"
+                    },
+                    {   "companyId": "InternationalCouriers",
+                        "intent": ["SHIPPING", "ORDERS"],
+                        "outboundQueueUrl": "http://"
+                    }
+                ]
+                
+
 
     def __init__(self, region: str, client_id: str, client_secret: str, integration_id: str):
         self.region = region
@@ -47,8 +56,11 @@ class GenesysAdapter(ccAdapter):
             "Authorization": f"Bearer {self.token}",
             "Content-Type": "application/json"
         }
+    
+    def _extract_ordered_messages(chat_history: list[dict]) -> list[str]:
+        pass
 
-    def prepare_payload(self, message: dict) -> dict:
+    def _prepare_payload(self, message: dict) -> dict:
 
         #
         # Converts your internal message format into the
@@ -69,7 +81,7 @@ class GenesysAdapter(ccAdapter):
             "direction": "Inbound"
         }
 
-    def deliver(self, prepared_message: dict):
+    def _deliver(self, prepared_message: dict):
         """
         Sends the prepared message to the Genesys Open Messaging API.
         """

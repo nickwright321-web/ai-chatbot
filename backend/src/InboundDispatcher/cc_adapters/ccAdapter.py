@@ -1,26 +1,48 @@
 import logging
 from abc import ABC, abstractmethod
+from typing import final
 
 logger = logging.getLogger(__name__)
 
 class ccAdapter(ABC):
-    """
-    Base class for all Contact Centre platform adapters.
-    Each adapter must implement the deliver() method to send the
-    message to the specific cc platform (Genesys, Zoom, etc.).
-    """
+    ###
+    # Base class for all Contact Centre platform adapters.
+    # Each adapter must implement #
+    #   prepare_payload() to format the message for the CC
+    #   deliver() to send the message to the specific cc platform (Genesys, Zoom, etc.).
+    #   send_message() so the caller can send the message
+    #   ROUTING - so the cc factory can determine which adapter to use
+    ###
 
-    def send_message(self, message: dict):
+    def __init__(self, outbound_queue_url: str):
+        self._outbound_queue_url = outbound_queue_url
+        
+    @property
+    @abstractmethod
+    def ROUTING(self) -> dict:
+        
+        # Each adapter MUST define a ROUTING dict:
+        # {
+        #     "companyId": [...],
+        #     "intent": [...]
+        # }
+        
+        pass
+
+    @final
+    def send_message(self, message: list[dict]):
         ###########
         # Used by the dispatcher to deliver prepare and deliver the message
         ##############
         try:
             logger.info(f"[{self.__class__.__name__}] Received message for delivery")
 
-            prepared = self.prepare_payload(message)
+            ordered_message = self._extract_ordered_messages(message)
+
+            prepared = self._prepare_payload(ordered_message)
             logger.debug(f"[{self.__class__.__name__}] Prepared payload: {prepared}")
 
-            response = self.deliver(prepared)
+            response = self._deliver(prepared)
             logger.info(f"[{self.__class__.__name__}] Delivery successful")
 
             return response
@@ -33,25 +55,25 @@ class ccAdapter(ABC):
             self.handle_error(message, e)
             raise
 
-    def prepare_payload(self, message: dict) -> dict:
-        ###
-        ### transforms the message into the platform specific format
-        ###
+    
+    @abstractmethod
+    def _extract_ordered_messages(self,chat_history: list[dict]) -> list[str]:
+        return chat_history
+    
+    @abstractmethod
+    def _prepare_payload(self, message: dict) -> dict:        
         return message
 
     @abstractmethod
-    def deliver(self, prepared_message: dict):
-        """
-        Must be implemented by each CCaaS adapter.
-        This method performs the actual API call / SDK call.
-        """
+    def _deliver(self, prepared_message: dict):
+        ###
+        ### internal method for delivering the message to the CC Platform
+        ###
+        
         pass
 
     def handle_error(self, original_message: dict, error: Exception):
-        """
-        Optional hook for custom error handling.
-        Override if you want retries, DLQ routing, etc.
-        """
+        
         logger.warning(
-            f"[{self.__class__.__name__}] No custom error handler implemented"
+            f"[{self.__class__.__name__}] Not implemented"
         )

@@ -2,9 +2,10 @@ import json
 import logging
 import boto3
 
-from shared.dynamoDBHelper import loadSessionState, saveSessionState, clearSessionState
+from shared.sessionHelper import loadSessionState, saveSessionState, clearSessionState
 from shared.SQSHelper import sendToCCForwarderQueue
 from shared.Gateway import Gateway
+from shared.intentHelper import getUserConf
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -12,7 +13,7 @@ logger.setLevel(logging.INFO)
 ROUTABLE_INTENTS = {"SALES", "TECH_SUPPORT", "GENERAL ENQUIRY"}
 
 def lambda_handler(event, context):
-    # Triggered by the Intent queue
+    # Triggered by the InboundMessage queue
     event_msg = f"EVENT: {json.dumps(event)}"
     # print(event_msg)
     logger.info(event_msg)
@@ -45,9 +46,9 @@ def lambda_handler(event, context):
         if pending_intent:
             logger.info(f"Pending intent found: {pending_intent}")
 
-            user_reply = userMessage.lower()
+            userConf = getUserConf(userMessage.lower())
 
-            if user_reply in ["yes", "y", "ok", "sure"]:
+            if userConf=="YES":
                 logger.info("User confirmed intent. Forwarding to CC.")
                 clearSessionState(connectionId)
 
@@ -59,7 +60,7 @@ def lambda_handler(event, context):
                 )
                 continue
 
-            if user_reply in ["no", "n"]:
+            if userConf=="NO":
                 logger.info("User declined intent. Clearing pending state.")
                 clearSessionState(connectionId)
                 continue

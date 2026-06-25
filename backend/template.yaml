@@ -42,9 +42,9 @@
 
   Resources:
 
-    ###########################################################
-    # DynamoDB Tables
-    ###########################################################
+###########################################################
+# DynamoDB Tables
+###########################################################
 
     # This table stores the WebSocket connection IDs for active clients
     ConnectionsTable:
@@ -121,9 +121,9 @@
           SSEEnabled: true
    
 
-    ###########################################################
-    # WebSocket API
-    ###########################################################
+###########################################################
+# WebSocket API
+###########################################################
     WebSocketApi:
       Type: AWS::ApiGatewayV2::Api
       Properties:
@@ -131,10 +131,10 @@
         ProtocolType: WEBSOCKET
         RouteSelectionExpression: "$request.body.action"
 
-    ###########################################################
-    # WebSocket Stage (must depend on LogGroup)
-    ###########################################################
-    
+###########################################################
+# WebSocket Stage (must depend on LogGroup)
+###########################################################
+  
     WebSocketStage:
       Type: AWS::ApiGatewayV2::Stage
       Properties:
@@ -146,9 +146,9 @@
           DataTraceEnabled: true
 
 
-    ###########################################################
-    # WebSocket Routes
-    ###########################################################
+###########################################################
+# WebSocket Routes
+###########################################################
     ConnectRoute:
       Type: AWS::ApiGatewayV2::Route
       Properties:
@@ -172,9 +172,9 @@
         RouteKey: "sendMessage"
         Target: !Sub "integrations/${ChatProcessorIntegration}"
 
-    ###########################################################
-    # WebSocket Integrations
-    ###########################################################
+###########################################################
+# WebSocket Integrations
+###########################################################
     ConnectIntegration:
       Type: AWS::ApiGatewayV2::Integration
       Properties:
@@ -202,9 +202,9 @@
         CredentialsArn: !GetAtt WebSocketIntegrationInvokeRole.Arn
         PayloadFormatVersion: "1.0"
 
-    ###########################################################
-    # Lambda: Connection Handler
-    ###########################################################
+###########################################################
+# Lambda: Connection Handler
+###########################################################
     ConnectionHandler:
       Type: AWS::Serverless::Function
       Properties:
@@ -239,9 +239,9 @@
         Principal: apigateway.amazonaws.com
         SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*/$disconnect
 
-  #############################################################
-  # Lambda Chat Processor (handles messages from clients)
-  #############################################################
+##############################################################
+# Lambda Chat Processor (handles messages from clients)
+##############################################################
 
     ChatProcessor:
       Type: AWS::Serverless::Function
@@ -301,6 +301,7 @@
                 - dynamodb:Query
                 - dynamodb:PutItem
                 - dynamodb:GetItem
+                - dynamodb:DeleteItem
               Resource:
                  - !GetAtt ChatHistory.Arn
                  - !GetAtt ChatSessionsTable.Arn
@@ -314,9 +315,9 @@
         Principal: apigateway.amazonaws.com
         SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${WebSocketApi}/*/*
 
-  #############################################################
-  # Lambda Intent Router (queues messages for forwarding to CC)
-  #############################################################
+#   #############################################################
+#   # Lambda Intent Router (queues messages for forwarding to CC)
+#   #############################################################
 
     IntentRouter:
       Type: AWS::Serverless::Function
@@ -366,10 +367,35 @@
               Action:
                 - sqs:SendMessage
               Resource: !GetAtt InboundCCForwarderQueue.Arn  
-          
-  ############################################################
-  # Websocket Authorizer
-  ############################################################
+
+  
+#   ############################################################
+#   # Inbound Dispatcher - sends msg to CC platform
+#   ############################################################
+
+    InboundDispatcher:
+      Type: AWS::Serverless::Function
+      Properties:
+        CodeUri: src/
+        Handler: InboundDispatcher.app.lambda_handler
+
+
+        Events:
+          CCForwarderEvent:
+            Type: SQS
+            Properties:
+              Queue: !GetAtt InboundCCForwarderQueue.Arn
+              BatchSize: 1
+
+        Policies:
+        
+          - AWSLambdaBasicExecutionRole
+          - DynamoDBReadPolicy:
+              TableName: !Ref ChatHistoryTableName
+   
+#   ############################################################
+#   # Websocket Authorizer
+#   ############################################################
 
     WebSocketAuthorizer:
       Type: AWS::Serverless::Function
@@ -452,9 +478,9 @@
         Description: Secret used for WebSocket authorizer demo
         SecretString: "abc123"
 
-  ############################################################
-  # Bedrock Elements
-  ############################################################
+#   ############################################################
+#   # Bedrock Elements
+#   ############################################################
 
     BobTrainingBucket:
       Type: AWS::S3::Bucket
@@ -513,15 +539,18 @@
                     - bedrock:GetModelCustomizationJob
                     - bedrock:ListModelCustomizationJobs
                   Resource: "*"
-#####################################################
-# SQS Queues
-#####################################################
+
+
+
+# #####################################################
+# # SQS Queues
+# #####################################################
     InboundMessagesQueue:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: InboundMessages
         VisibilityTimeout: 30
-        MessageRetentionPeriod: 345600   # 4 days
+        MessageRetentionPeriod: 240   # 4 mins
         ReceiveMessageWaitTimeSeconds: 20
         
     InboundMessagesQueuePolicy:
@@ -532,6 +561,7 @@
         PolicyDocument:
           Version: "2012-10-17"
           Statement:
+            # Allow ChatProcessor to send messages
             - Effect: Allow
               Principal:
                 AWS: !GetAtt ChatProcessorRole.Arn
@@ -540,12 +570,22 @@
                 - sqs:GetQueueUrl
               Resource: !GetAtt InboundMessagesQueue.Arn
 
+            # Allow Lambda service to poll the queue
+            - Effect: Allow
+              Principal:
+                Service: lambda.amazonaws.com
+              Action:
+                - sqs:ReceiveMessage
+                - sqs:DeleteMessage
+                - sqs:GetQueueAttributes
+              Resource: !GetAtt InboundMessagesQueue.Arn
+
     InboundCCForwarderQueue:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: CCForwarder
         VisibilityTimeout: 30
-        MessageRetentionPeriod: 345600   # 4 days
+        MessageRetentionPeriod: 240   # 4 mins
         ReceiveMessageWaitTimeSeconds: 20
         
     InboundCCForwarderQueuePolicy:
@@ -556,6 +596,7 @@
         PolicyDocument:
           Version: "2012-10-17"
           Statement:
+            # Allow ChatProcessor to send messages
             - Effect: Allow
               Principal:
                 AWS: !GetAtt ChatProcessorRole.Arn
@@ -564,17 +605,96 @@
                 - sqs:GetQueueUrl
               Resource: !GetAtt InboundCCForwarderQueue.Arn
 
+            # Allow Lambda service to poll the queue (required for event source mapping)
+            - Effect: Allow
+              Principal:
+                Service: lambda.amazonaws.com
+              Action:
+                - sqs:ReceiveMessage
+                - sqs:DeleteMessage
+                - sqs:GetQueueAttributes
+              Resource: !GetAtt InboundCCForwarderQueue.Arn
+
     OutboundMessagesQueue:
       Type: AWS::SQS::Queue
       Properties:
         QueueName: OutboundMessages
         VisibilityTimeout: 30
-        MessageRetentionPeriod: 345600   # 4 days
+        MessageRetentionPeriod: 240   # 4 mins
         ReceiveMessageWaitTimeSeconds: 20
+###################################################################
+# Outbound Processor
+###################################################################
+
+##API
+
+    OutboundMessageApi:
+      Type: AWS::Serverless::Api
+      Properties:
+        StageName: Prod
+        Auth:
+          DefaultAuthorizer: CognitoAuthorizer
+          Authorizers:
+            CognitoAuthorizer:
+              UserPoolArn: !GetAtt LiveChatUserPool.Arn
+
+##Lambda
+
+    OutboundMessageProcessor:
+      Type: AWS::Serverless::Function
+      Properties:
+        CodeUri: src/
+        Handler: outboundMessageProcessor.app.lambda_handler
+        Runtime: python3.12
+        Events:
+            ApiEvent:
+              Type: Api
+              Properties:
+                RestApiId: !Ref OutboundMessageApi
+                Path: /outboundMessage
+                Method: POST
+                Auth:
+                  Authorizer: CognitoAuthorizer
+
+        Policies:
+        
+          - AWSLambdaBasicExecutionRole
+
+##create Cognito group and pool for authorisation
+
+    LiveChatUserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: LiveChatUserPool
+
+    LiveChatResourceServer:
+      Type: AWS::Cognito::UserPoolResourceServer
+      Properties:
+        UserPoolId: !Ref LiveChatUserPool
+        Identifier: outbound-api
+        Name: Outbound API
+        Scopes:
+          - ScopeName: read
+            ScopeDescription: Read access
+          - ScopeName: write
+            ScopeDescription: Write access
+
+    LiveChatUserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      DependsOn: LiveChatResourceServer
+      Properties:
+        UserPoolId: !Ref LiveChatUserPool
+        GenerateSecret: true
+        AllowedOAuthFlowsUserPoolClient: true
+        AllowedOAuthFlows:
+          - client_credentials
+        AllowedOAuthScopes:
+          - outbound-api/read
+          - outbound-api/write
              
-  ############################################################
-  # Roles
-  #############################################################
+#   ############################################################
+#   # Roles
+#   #############################################################
 
     ApiGatewayCloudWatchRole:
       Type: AWS::IAM::Role

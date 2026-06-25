@@ -2,7 +2,7 @@ TODOs
 =====
 
 
-1. Fix authorisation for the $connect websocket. YAML won't deploy authoriser.
+1. Fix authorisation for the $connect websocket. YAML won't deploy authoriser. - DONE
 2. Write Test cases
 3. Architecture diagram
 4. Plugin architecture for generic UC platform / Genesys/AXP/Infinith/Zoom
@@ -15,3 +15,6 @@ TODOs
 11. SSO/Authentication!!
 12. Review Deployer permissions
 13. Re-architect inbound processor to split the intent processing out
+14. Better error handling / inform user when an error occurs
+15. Add a "typing" route to the web socket
+16. Add Dead Letter queues

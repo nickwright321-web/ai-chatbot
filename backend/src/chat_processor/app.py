@@ -6,9 +6,11 @@ import logging
 from datetime import datetime
 from chat_processor.ChatMessage import ChatMessage
 from chat_processor.ai_engine.factory import create_engine
-from shared.dynamoDBHelper import saveChatMessage,getChatHistory,loadSessionState,saveSessionState
+from shared.sessionHelper import loadSessionState,saveSessionState,clearSessionState
+from shared.chatHistoryHelper import saveChatMessage,getChatHistory
 from shared.SQSHelper import sendToInboundQueue
 from shared.Gateway import Gateway
+from shared.intentHelper import getUserConf
 
 # 1. Initialize AWS S3 client and Tokenizer
 s3_client = boto3.client('s3')
@@ -43,7 +45,6 @@ def lambda_handler(event, context, apigw_client_factory=get_apigw_client):
 
     try:
        
-
         event_msg = f"EVENT: {json.dumps(event)}"
         # print(event_msg)
         logger.info(event_msg)
@@ -78,23 +79,34 @@ def lambda_handler(event, context, apigw_client_factory=get_apigw_client):
             # check for an existing intent. If the user is confirming
             # an intent, we should just forward to the CCForwarder
             # and ignore.
-            logger.info(f"User is replying to a confirmation prompt: {message}")
             state = loadSessionState(connectionId)
             pending_intent = state.get("pending_intent") if state else None
 
             if pending_intent:
                 
-                postToClient(AI_NAME, f"OK, I'll forward you now...", connectionId)
+                logger.info(f"User is replying to a confirmation prompt: {message}, pending intent {pending_intent}")
+
+                userConf = getUserConf(message.lower())                
                 
-                sendToInboundQueue(
-                    connectionId=connectionId,
-                    companyId=companyId,
-                    intent=pending_intent,
-                    userMessage=message,
-                    domain=domain,
-                    stage=stage
-                )
-                return {"statusCode": 200}
+                if userConf=="YES":
+                    postToClient(AI_NAME, f"OK, I'll forward you now...", connectionId)
+                    sendToInboundQueue(
+                        connectionId=connectionId,
+                        companyId=companyId,
+                        intent=pending_intent,
+                        userMessage=message,
+                        domain=domain,
+                        stage=stage
+                    )
+                    return {"statusCode": 200}
+                
+                elif userConf == "NO":
+                    clearSessionState(connectionId)
+                    postToClient(AI_NAME, "No problem, how else can I help?", connectionId)
+                    return {"statusCode": 200}
+                else:
+                    postToClient(AI_NAME, "Just to confirm — would you like me to forward you?", connectionId)
+                    return {"statusCode": 200}
 
             logger.info(f"Retrieving chat history for {connectionId}")
             chatHistory = getChatHistory(connectionId, 10)
@@ -102,15 +114,12 @@ def lambda_handler(event, context, apigw_client_factory=get_apigw_client):
 
             #Save the current message after retrieving chat history, to avoid
             # duplication 
-            # 
             logger.info(f"Saving message for {connectionId}...")           
             saveChatMessage(connectionId, "User", ChatMessage(text=message, intent="user"))
             logger.info(f"Message saved successfully for {connectionId}...")
-       
 
             #Send the user's message and chat history to the AI
             ai_reply:ChatMessage = get_engine().sendToAI(message,chatHistory)
-
             
             #save the pending intent            
             if ai_reply.intent in ("SALES", "TECH_SUPPORT"):

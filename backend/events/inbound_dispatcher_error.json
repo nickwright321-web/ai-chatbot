@@ -1,0 +1,21 @@
+{
+    "Records": [
+        {
+            "messageId": "cae8d7b9-1972-4957-977b-185723460496",
+            "receiptHandle": "AQEBu+hBQ7fozjSl9yFeHIA4jxSOcn8vBZP2iCZvQ7g94Leg5/3jRNCwKRS7SpV2txAKfFWd/+kWCknJo0lLeZZZMpnFMLBeO0acENmXkdhOJtIahk1ZawZDBSjo1hNzpbxIFeosXUaZ5yfg1V8PTisvBCq1FXMHrMWv/1FNf3v0vdAarIx184UPJyGaMQpTxpAo+rDtva9AqsYtafPf0gH0KXXmfCpga5bV3cAQArS5dKOXDShrIvXC7CGR1GUERQojCbZQC4J60tjWjWteGGnkYTCf/IxHfagItAsvBadBco7FyYdcBILacvKY8QXyeRVXm/qUB7pTdRJd8DAMeICipoePe/LuaTSbSNGNnB0OsPibx68gCNT1dLuAyj+xL9S+g/hadlXkBrbHoiUZgaiiPA==",
+            "body": "{\"connectionId\": \"gSERfA5bnWeIKEjFJA==\", \"companyId\": \"BigCorp\", \"userMessage\": \"yes\", \"intent\": \"TECH_SUPPORT\", \"timestamp\": \"2026-06-25T09:52:50.950773+00:00\"}",
+            "attributes": {
+                "ApproximateReceiveCount": "1",
+                "AWSTraceHeader": "Root=1-6a3cfa72-fc5f07ec5a4dbeea157ae05e;Parent=5c4f21ff40338325;Sampled=0;Lineage=2:e59b2cc7:0",
+                "SentTimestamp": "1782381171059",
+                "SenderId": "AROAR5ZKY7R3ZNHVDHJEY:ai-chatbot-backend-IntentRouter-9f2exG1kjOxF",
+                "ApproximateFirstReceiveTimestamp": "1782381171067"
+            },
+            "messageAttributes": {},
+            "md5OfBody": "11a6e3a0a94a77ea27355f2571543a39",
+            "eventSource": "aws:sqs",
+            "eventSourceARN": "arn:aws:sqs:eu-west-2:132696833143:CCForwarder",
+            "awsRegion": "eu-west-2"
+        }
+    ]
+}

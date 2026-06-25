@@ -56,7 +56,7 @@ flowchart LR
     %% ============================
     subgraph CC [Contact Centre]
         direction LR
-        CCForwarder[Lambda: Inbound CC Forwarder]
+        CCForwarder[Lambda: InboundDispatcher]
         CCSystem[External: Contact Centre]:::external
     end
 
