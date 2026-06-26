@@ -3,6 +3,8 @@ import logging
 import boto3
 from .ccAdapter import ccAdapter
 from datetime import datetime, timezone
+from .MockReply import send_message
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -70,13 +72,22 @@ class MockCCAdapter(ccAdapter):
     def _deliver(self, prepared_message: dict):  
        
         logger.info(f"[DemoCompAdapter] Sending mock message to outbound queue: {prepared_message}")
+        
+        connectionId = prepared_message.get("metadata").get("connectionId")
 
-        self.sqs.send_message(
-            QueueUrl=self.outbound_queue_url,
-            MessageBody=json.dumps(prepared_message)
-        )
+        if connectionId is None:
+            send_message({"connectionId": "none", "text":"I'm sorry, I'm having trouble connecting"})
+
+        #TODO: IMPLEMENT EXTERNAL CC API REQUEST HERE 
+
+        ## wait 2 seconds and then fake a response from the agent
+        time.sleep(2)
+        send_message({
+                "connectionId": connectionId,
+                "text": "Hi, you're talking to Fran. How can I help?"
+            })
 
         return {"status": "mocked", "sentTo": "OutboundMessagesQueue"}
-
+  
     def handle_error(self, original_message: dict, error: Exception):
         logger.error(f"[DemoCompAdapter] Mock adapter failed: {error}")

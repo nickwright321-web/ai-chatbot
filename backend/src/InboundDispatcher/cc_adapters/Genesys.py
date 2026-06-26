@@ -1,5 +1,5 @@
 import logging
-import requests
+#import requests
 from .ccAdapter import ccAdapter
 
 logger = logging.getLogger(__name__)
@@ -42,11 +42,11 @@ class GenesysAdapter(ccAdapter):
 
         logger.info("GenesysAdapter - Requesting OAuth token")
 
-        response = requests.post(url, data=data)
-        response.raise_for_status()
+        # response = requests.post(url, data=data)
+        # response.raise_for_status()
 
-        self.token = response.json()["access_token"]
-        logger.info("GenesysAdapter - OAuth token acquired")
+        # self.token = response.json()["access_token"]
+        # logger.info("GenesysAdapter - OAuth token acquired")
 
     def _get_headers(self):
         if not self.token:
@@ -82,30 +82,8 @@ class GenesysAdapter(ccAdapter):
         }
 
     def _deliver(self, prepared_message: dict):
-        """
-        Sends the prepared message to the Genesys Open Messaging API.
-        """
-
-        url = (
-            f"https://api.{self.region}.genesyscloud.com/"
-            f"api/v2/conversations/messages/inbound/open"
-        )
-
-        headers = self._get_headers()
-
-        logger.info(f"[GenesysAdapter] Sending message to Genesys: {prepared_message}")
-
-        response = requests.post(url, json=prepared_message, headers=headers)
-
-        if response.status_code >= 400:
-            logger.error(
-                f"[GenesysAdapter] Genesys API error {response.status_code}: {response.text}"
-            )
-            response.raise_for_status()
-
-        logger.info("[GenesysAdapter] Message delivered successfully")
-        return response.json()
-
+       
+        pass
     def handle_error(self, original_message: dict, error: Exception):
         logger.error(
             f"[GenesysAdapter] Failed to deliver message for company "

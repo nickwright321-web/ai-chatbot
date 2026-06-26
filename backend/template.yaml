@@ -10,7 +10,7 @@
 
   Globals:
     Function:
-      Runtime: python3.11
+      Runtime: python3.14
       Timeout: 15
       MemorySize: 256
 
@@ -120,7 +120,6 @@
         SSESpecification:
           SSEEnabled: true
    
-
 ###########################################################
 # WebSocket API
 ###########################################################
@@ -392,6 +391,14 @@
           - AWSLambdaBasicExecutionRole
           - DynamoDBReadPolicy:
               TableName: !Ref ChatHistoryTableName
+          
+          - Statement:
+              Effect: Allow
+              Action:
+                - secretsmanager:GetSecretValue
+              Resource: "*"
+
+          
    
 #   ############################################################
 #   # Websocket Authorizer
@@ -402,7 +409,7 @@
       Properties:
         CodeUri: src/authoriser/
         Handler: app.lambda_handler
-        Runtime: python3.11
+      #  Runtime: python3.12
         Policies:
           - AWSLambdaBasicExecutionRole
           
@@ -622,6 +629,8 @@
         VisibilityTimeout: 30
         MessageRetentionPeriod: 240   # 4 mins
         ReceiveMessageWaitTimeSeconds: 20
+
+
 ###################################################################
 # Outbound Processor
 ###################################################################
@@ -645,7 +654,11 @@
       Properties:
         CodeUri: src/
         Handler: outboundMessageProcessor.app.lambda_handler
-        Runtime: python3.12
+      #  Runtime: python3.12
+        Environment:
+          Variables:
+            QUEUE_NAME: !Ref OutboundMessagesQueue
+        
         Events:
             ApiEvent:
               Type: Api
@@ -655,10 +668,17 @@
                 Method: POST
                 Auth:
                   Authorizer: CognitoAuthorizer
+                  AuthorizationScopes:
+                    - outbound-api/read           
 
         Policies:
         
           - AWSLambdaBasicExecutionRole
+          - Statement:
+              Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Resource: !GetAtt OutboundMessagesQueue.Arn
 
 ##create Cognito group and pool for authorisation
 
@@ -691,6 +711,13 @@
         AllowedOAuthScopes:
           - outbound-api/read
           - outbound-api/write
+
+    
+    LiveChatUserPoolDomain:
+      Type: AWS::Cognito::UserPoolDomain
+      Properties:
+        Domain: !Sub "livechat-auth-${AWS::AccountId}"
+        UserPoolId: !Ref LiveChatUserPool
              
 #   ############################################################
 #   # Roles
@@ -760,3 +787,6 @@
     StartModelTrainingCommand:
       Description: PowerShell command to start the Bedrock model customization job
       Value: !Sub "aws bedrock start-model-customization-job --region ${AWS::Region} --job-name bob-training --custom-model-name bob-v1 --base-model-identifier mistral.mistral-7b-instruct-v0:2 --training-data-s3-uri s3://${BobTrainingBucket}/bob-training.jsonl --role-arn ${BedrockCustomizationRole.Arn}"
+
+    LiveChatUserPoolClientId:
+        Value: !Ref LiveChatUserPoolClient

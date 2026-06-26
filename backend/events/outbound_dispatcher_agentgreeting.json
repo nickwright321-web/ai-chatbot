@@ -1,0 +1,132 @@
+{
+    "resource": "/outboundMessage",
+    "path": "/outboundMessage",
+    "httpMethod": "POST",
+    "headers": {
+        "Accept-Encoding": "identity",
+        "Authorization": "Bearer eyJraWQiOiJWd3pOSzg5NFpubXJ6eUNIQTk1c2xBYWpiZENNeTVBYW5rTWh5RDYvRDRzPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIyZWhkZHJiaHY5bGdlOGNkNzRicDlhY2IxaSIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoib3V0Ym91bmQtYXBpL3JlYWQiLCJhdXRoX3RpbWUiOjE3ODI0ODI4ODIsImlzcyI6Imh0dHBzOi8vY29nbml0by1pZHAuZXUtd2VzdC0yLmFtYXpvbmF3cy5jb20vZXUtd2VzdC0yX3VxTUJIVVpBTSIsImV4cCI6MTc4MjQ4NjQ4MiwiaWF0IjoxNzgyNDgyODgyLCJ2ZXJzaW9uIjoyLCJqdGkiOiI0N2NjYTJiNi0xZTA0LTQxYmEtOTBiZi1iNjU4ODk0MDVkNzAiLCJjbGllbnRfaWQiOiIyZWhkZHJiaHY5bGdlOGNkNzRicDlhY2IxaSJ9.Nu-BxozpL7iO_5weEDvuLLjB0lQ7yGGs5zhrChMSkHic2enwHhkSY3D7ncoC_QQeDaqJKaxylWmu_jCDpetDlYnrW0ciEz117mfz3M4ZkPHhfKe1FEYOXdJR92LOR2HXaB5i_Dz9Svq_fJtOHNNLbLaM894nxh3FxRHMOqsDA5eCM4aNo7w39_K2dALZHWNuQOakdT2yaxTF8OkYn-IgHDF-ucxswKYRQGKuHatawe5zeH2mlYkty03R3oN9TY1Ydbbx5MqVyLQQDFVCwQ7TLtXJgmmGg6tiMPJ9nMkkSDmcEEp2boHH2cEIXhppQZ1hqh1vsiK4niyPBwrUlcB-4Q",
+        "CloudFront-Forwarded-Proto": "https",
+        "CloudFront-Is-Desktop-Viewer": "true",
+        "CloudFront-Is-Mobile-Viewer": "false",
+        "CloudFront-Is-SmartTV-Viewer": "false",
+        "CloudFront-Is-Tablet-Viewer": "false",
+        "CloudFront-Viewer-ASN": "21859",
+        "CloudFront-Viewer-Country": "GB",
+        "Content-Type": "application/json",
+        "Host": "gsac5us527.execute-api.eu-west-2.amazonaws.com",
+        "User-Agent": "Python-urllib/3.14",
+        "Via": "1.1 47c1b2a882ab8226b0b44cb0c042b982.cloudfront.net (CloudFront)",
+        "X-Amz-Cf-Id": "tQJ1OZ7g6137gBve09AFSwyg06skp6oe62V38npoasF_jt3Uy6dj7A==",
+        "X-Amzn-Trace-Id": "Root=1-6a3e87ca-326413f331577a9f4e0dc9bd",
+        "X-Forwarded-For": "128.1.171.39, 15.158.44.234",
+        "X-Forwarded-Port": "443",
+        "X-Forwarded-Proto": "https"
+    },
+    "multiValueHeaders": {
+        "Accept-Encoding": [
+            "identity"
+        ],
+        "Authorization": [
+            "Bearer eyJraWQiOiJWd3pOSzg5NFpubXJ6eUNIQTk1c2xBYWpiZENNeTVBYW5rTWh5RDYvRDRzPSIsImFsZyI6IlJTMjU2In0.eyJzdWIiOiIyZWhkZHJiaHY5bGdlOGNkNzRicDlhY2IxaSIsInRva2VuX3VzZSI6ImFjY2VzcyIsInNjb3BlIjoib3V0Ym91bmQtYXBpL3JlYWQiLCJhdXRoX3RpbWUiOjE3ODI0ODI4ODIsImlzcyI6Imh0dHBzOi8vY29nbml0by1pZHAuZXUtd2VzdC0yLmFtYXpvbmF3cy5jb20vZXUtd2VzdC0yX3VxTUJIVVpBTSIsImV4cCI6MTc4MjQ4NjQ4MiwiaWF0IjoxNzgyNDgyODgyLCJ2ZXJzaW9uIjoyLCJqdGkiOiI0N2NjYTJiNi0xZTA0LTQxYmEtOTBiZi1iNjU4ODk0MDVkNzAiLCJjbGllbnRfaWQiOiIyZWhkZHJiaHY5bGdlOGNkNzRicDlhY2IxaSJ9.Nu-BxozpL7iO_5weEDvuLLjB0lQ7yGGs5zhrChMSkHic2enwHhkSY3D7ncoC_QQeDaqJKaxylWmu_jCDpetDlYnrW0ciEz117mfz3M4ZkPHhfKe1FEYOXdJR92LOR2HXaB5i_Dz9Svq_fJtOHNNLbLaM894nxh3FxRHMOqsDA5eCM4aNo7w39_K2dALZHWNuQOakdT2yaxTF8OkYn-IgHDF-ucxswKYRQGKuHatawe5zeH2mlYkty03R3oN9TY1Ydbbx5MqVyLQQDFVCwQ7TLtXJgmmGg6tiMPJ9nMkkSDmcEEp2boHH2cEIXhppQZ1hqh1vsiK4niyPBwrUlcB-4Q"
+        ],
+        "CloudFront-Forwarded-Proto": [
+            "https"
+        ],
+        "CloudFront-Is-Desktop-Viewer": [
+            "true"
+        ],
+        "CloudFront-Is-Mobile-Viewer": [
+            "false"
+        ],
+        "CloudFront-Is-SmartTV-Viewer": [
+            "false"
+        ],
+        "CloudFront-Is-Tablet-Viewer": [
+            "false"
+        ],
+        "CloudFront-Viewer-ASN": [
+            "21859"
+        ],
+        "CloudFront-Viewer-Country": [
+            "GB"
+        ],
+        "Content-Type": [
+            "application/json"
+        ],
+        "Host": [
+            "gsac5us527.execute-api.eu-west-2.amazonaws.com"
+        ],
+        "User-Agent": [
+            "Python-urllib/3.14"
+        ],
+        "Via": [
+            "1.1 47c1b2a882ab8226b0b44cb0c042b982.cloudfront.net (CloudFront)"
+        ],
+        "X-Amz-Cf-Id": [
+            "tQJ1OZ7g6137gBve09AFSwyg06skp6oe62V38npoasF_jt3Uy6dj7A=="
+        ],
+        "X-Amzn-Trace-Id": [
+            "Root=1-6a3e87ca-326413f331577a9f4e0dc9bd"
+        ],
+        "X-Forwarded-For": [
+            "128.1.171.39, 15.158.44.234"
+        ],
+        "X-Forwarded-Port": [
+            "443"
+        ],
+        "X-Forwarded-Proto": [
+            "https"
+        ]
+    },
+    "queryStringParameters": null,
+    "multiValueQueryStringParameters": null,
+    "pathParameters": null,
+    "stageVariables": null,
+    "requestContext": {
+        "resourceId": "1reya5",
+        "authorizer": {
+            "claims": {
+                "sub": "2ehddrbhv9lge8cd74bp9acb1i",
+                "token_use": "access",
+                "scope": "outbound-api/read",
+                "auth_time": "1782482882",
+                "iss": "https://cognito-idp.eu-west-2.amazonaws.com/eu-west-2_uqMBHUZAM",
+                "exp": "Fri Jun 26 15:08:02 UTC 2026",
+                "iat": "Fri Jun 26 14:08:02 UTC 2026",
+                "version": "2",
+                "jti": "47cca2b6-1e04-41ba-90bf-b65889405d70",
+                "client_id": "2ehddrbhv9lge8cd74bp9acb1i"
+            }
+        },
+        "resourcePath": "/outboundMessage",
+        "httpMethod": "POST",
+        "extendedRequestId": "fkontENzrPEEZqA=",
+        "requestTime": "26/Jun/2026:14:08:10 +0000",
+        "path": "/Prod/outboundMessage",
+        "accountId": "132696833143",
+        "protocol": "HTTP/1.1",
+        "stage": "Prod",
+        "domainPrefix": "gsac5us527",
+        "requestTimeEpoch": 1782482890589,
+        "requestId": "b7d43193-d2c4-4594-929e-50f1a59e13be",
+        "identity": {
+            "cognitoIdentityPoolId": null,
+            "accountId": null,
+            "cognitoIdentityId": null,
+            "caller": null,
+            "sourceIp": "128.1.171.39",
+            "principalOrgId": null,
+            "accessKey": null,
+            "cognitoAuthenticationType": null,
+            "cognitoAuthenticationProvider": null,
+            "userArn": null,
+            "userAgent": "Python-urllib/3.14",
+            "user": null
+        },
+        "domainName": "gsac5us527.execute-api.eu-west-2.amazonaws.com",
+        "deploymentId": "yz6awm",
+        "apiId": "gsac5us527"
+    },
+    "body": "{\"message\": {\"connectionId\": \"gSLvB4619WeIKEhODA==\", \"text\": \"Hi, you're talking to Fran. How can I help?\"}}",
+    "isBase64Encoded": false
+}

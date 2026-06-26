@@ -4,7 +4,8 @@ from InboundDispatcher.cc_adapters.cc_factory import getAdapter
 from InboundDispatcher.cc_adapters import ccAdapter
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 def lambda_handler(event, context):
     #forwards a queued message to the cc platform
@@ -31,9 +32,9 @@ def lambda_handler(event, context):
         #now get the cc adapter so you can 
         #send the message to the CC
 
-        adapter:ccAdapter = getAdapter(companyId)#
+        adapter:ccAdapter = getAdapter(companyId)
 
-        adapter.send_message(message = chatHistory)
+        adapter.send_message(messages = chatHistory)
 
 
     return {"statusCode": 200, "body": "success"}

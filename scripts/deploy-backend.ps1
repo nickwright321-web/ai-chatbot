@@ -1,6 +1,14 @@
 try {
     
 
+$stackName = "ai-chatbot-backend"
+$secretName = "ai-chatbot-api-creds"
+
+# Write-Host "Creating zip file for layers..."
+# Remove-Item -Recurse -Force backend/src/python_layer/python
+# pip install requests -t backend/src/python_layer/python/lib/python3.11/site-packages
+# Compress-Archive -Path backend/src/python_layer/python\* -DestinationPath backend/src/python_layer/python-layer.zip -Force
+# Write-Host "layers zip file created successfully"
 
 Write-Host "Running sam validate..."
 sam validate --template-file .\backend\template.yaml
@@ -11,6 +19,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "Validation successful."
+
+
 
 # Delete .aws-sam folder if it exists
 if (Test-Path ".aws-sam") {
@@ -40,11 +50,12 @@ Write-Host "Role assumed..."
 
 aws sts get-caller-identity
 
+
 # Run sam deploy
 Write-Host "Running sam deploy..."
 sam deploy `
   --template-file .\backend\template.yaml `
-  --stack-name ai-chatbot-backend `
+  --stack-name $stackName  `
   --region eu-west-2 `
   --s3-bucket nick-ai-chatbot-artifacts `
   --capabilities CAPABILITY_NAMED_IAM `
@@ -57,6 +68,44 @@ sam deploy `
 Write-Host "Uploading Bob Prompt"
 
 aws s3 cp Bedrock/bob-prompt.txt s3://bob-training-data-132696833143-eu-west-2/
+
+#Write the Outbound API secret to SecretsManager
+
+# $userPoolID = aws cloudformation list-stack-resources `
+#   --stack-name "ai-chatbot-backend" `
+#   --query "StackResourceSummaries[?LogicalResourceId=='LiveChatUserPool'].PhysicalResourceId" `
+#   --output text
+
+# $clientId = aws cloudformation list-stack-resources `
+#   --stack-name "ai-chatbot-backend" `
+#   --query "StackResourceSummaries[?LogicalResourceId=='LiveChatUserPoolClient'].PhysicalResourceId" `
+#   --output text
+
+#   if ($userPoolId -and $userPoolId -ne "None" -and `
+#     $clientId -and $clientId -ne "None") {
+
+#     $clientSecret = aws cognito-idp describe-user-pool-client `
+#     --user-pool-id $userPoolId `
+#     --client-id $clientId `
+#     --query "UserPoolClient.ClientSecret" `
+#     --output text
+
+
+#     $secretValue = @{
+#     client_id     = $clientId
+#     client_secret = $clientSecret
+#     } | ConvertTo-Json -Compress
+
+#     aws secretsmanager create-secret `
+#     --name $secretName `
+#     --secret-string $secretValue 2>$null
+
+#     if ($LASTEXITCODE -ne 0) {
+#     aws secretsmanager update-secret `
+#         --secret-id $secretName `
+#         --secret-string $secretValue
+#     }
+# }
 
 }
 

@@ -30,14 +30,18 @@ class ccAdapter(ABC):
         pass
 
     @final
-    def send_message(self, message: list[dict]):
+    def send_message(self, messages: list[dict]):
         ###########
         # Used by the dispatcher to deliver prepare and deliver the message
         ##############
         try:
             logger.info(f"[{self.__class__.__name__}] Received message for delivery")
 
-            ordered_message = self._extract_ordered_messages(message)
+            if not messages:
+                logger.info("No messages to send")#
+                return None
+
+            ordered_message = self._extract_ordered_messages(messages)
 
             prepared = self._prepare_payload(ordered_message)
             logger.debug(f"[{self.__class__.__name__}] Prepared payload: {prepared}")
@@ -52,7 +56,7 @@ class ccAdapter(ABC):
                 f"[{self.__class__.__name__}] Delivery failed: {e}",
                 exc_info=True
             )
-            self.handle_error(message, e)
+            self.handle_error(messages, e)
             raise
 
     

@@ -19,8 +19,8 @@ aws cloudformation delete-stack \
   --region eu-west-2
 
 
-aws cloudformation wait stack-delete-complete \
-  --stack-name aws-sam-cli-managed-default \
+aws cloudformation wait stack-delete-complete `
+  --stack-name aws-sam-cli-managed-default `
   --region eu-west-2
 
   aws cloudformation describe-stack-events \
