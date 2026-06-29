@@ -1,9 +1,47 @@
 {
-  "requestContext": {
-    "routeKey": "$disconnect",
-    "eventType": "DISCONNECT",
-    "connectionId": "abc123-test-connection",
-    "domainName": "example.com",
-    "stage": "dev"
-  }
+    "headers": {
+        "Host": "bq40m4foce.execute-api.eu-west-2.amazonaws.com",
+        "x-api-key": "",
+        "X-Forwarded-For": "",
+        "x-restapi": ""
+    },
+    "multiValueHeaders": {
+        "Host": [
+            "bq40m4foce.execute-api.eu-west-2.amazonaws.com"
+        ],
+        "x-api-key": [
+            ""
+        ],
+        "X-Forwarded-For": [
+            ""
+        ],
+        "x-restapi": [
+            ""
+        ]
+    },
+    "requestContext": {
+        "routeKey": "$disconnect",
+        "disconnectStatusCode": 1001,
+        "authorizer": {
+            "companyId": "BigCorp",
+            "principalId": "demo-user"
+        },
+        "eventType": "DISCONNECT",
+        "extendedRequestId": "fu4-LHWorPEEqpg=",
+        "requestTime": "29/Jun/2026:16:48:51 +0000",
+        "messageDirection": "IN",
+        "disconnectReason": "",
+        "stage": "prod",
+        "connectedAt": 1782751725587,
+        "requestTimeEpoch": 1782751731919,
+        "identity": {
+            "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0",
+            "sourceIp": "23.90.184.7"
+        },
+        "requestId": "fu4-LHWorPEEqpg=",
+        "domainName": "bq40m4foce.execute-api.eu-west-2.amazonaws.com",
+        "connectionId": "gSgjKO83pWeIKEizgA==",
+        "apiId": "bq40m4foce"
+    },
+    "isBase64Encoded": false
 }

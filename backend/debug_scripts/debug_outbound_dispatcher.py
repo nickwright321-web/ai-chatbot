@@ -6,10 +6,10 @@ import os
 # Add backend/src to the Python path
 sys.path.append(os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from outboundMessageProcessor.app import lambda_handler
+from outboundMessageDispatcher.app import lambda_handler
 
 # Introduction Event
-with open("backend/events/outbound_processor_agentgreeting.json", "r") as f:
+with open("backend/events/outbound_dispatcher.json", "r") as f:
     event = json.load(f)
 
 print("=== Running lambda_handler Introduction ===")

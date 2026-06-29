@@ -42,6 +42,7 @@ def get_apigw_client(domain, stage):
     )
 
 def lambda_handler(event, context, apigw_client_factory=get_apigw_client):
+    #inject the gateway client so it can be mocked when testing
 
     try:
        

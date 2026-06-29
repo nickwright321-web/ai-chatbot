@@ -6,7 +6,6 @@ from chat_processor.ChatMessage import ChatMessage
 dynamodb = boto3.resource("dynamodb")
 chat_sessions_table = dynamodb.Table("ChatSessions")
 
-
 ################################
 # Session State functions
 ################################

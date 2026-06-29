@@ -680,6 +680,10 @@
                 - sqs:SendMessage
               Resource: !GetAtt OutboundMessagesQueue.Arn
 
+##########################################
+# Authorisation for outbound processor API
+##########################################
+
 ##create Cognito group and pool for authorisation
 
     LiveChatUserPool:
@@ -718,7 +722,37 @@
       Properties:
         Domain: !Sub "livechat-auth-${AWS::AccountId}"
         UserPoolId: !Ref LiveChatUserPool
-             
+ 
+################################################################
+# Outbound Dispatcher
+################################################################
+
+    OutboundMessageDispatcher:
+      Type: AWS::Serverless::Function
+      Properties:
+        CodeUri: src/
+        Handler: OutboundMessageDispatcher.app.lambda_handler
+
+        Events:
+          CCForwarderEvent:
+            Type: SQS
+            Properties:
+              Queue: !GetAtt OutboundMessagesQueue.Arn
+              BatchSize: 1
+
+
+        Policies:
+        
+          - AWSLambdaBasicExecutionRole
+          # - DynamoDBReadPolicy:
+          #     TableName: !Ref ChatHistoryTableName
+          
+          # - Statement:
+          #     Effect: Allow
+          #     Action:
+          #       - secretsmanager:GetSecretValue
+          #     Resource: "*"
+
 #   ############################################################
 #   # Roles
 #   #############################################################

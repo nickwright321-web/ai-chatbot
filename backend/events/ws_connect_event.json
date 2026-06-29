@@ -1,7 +1,98 @@
 {
-  "requestContext": {
-    "routeKey": "$connect",
-    "connectionId": "abc123",
-    "eventType": "CONNECT"
-  }
+    "headers": {
+        "Accept-Encoding": "gzip, deflate, br, zstd",
+        "Accept-Language": "en-GB,en;q=0.9",
+        "Cache-Control": "no-cache",
+        "Host": "bq40m4foce.execute-api.eu-west-2.amazonaws.com",
+        "Origin": "https://d21l7qr876xo06.cloudfront.net",
+        "Pragma": "no-cache",
+        "Sec-WebSocket-Extensions": "permessage-deflate; client_max_window_bits",
+        "Sec-WebSocket-Key": "SikSaQv0HdqjoWMvHyJ36w==",
+        "Sec-WebSocket-Version": "13",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0",
+        "X-Amzn-Trace-Id": "Root=1-6a42a1ed-74aabbc6794762d67191daa0",
+        "X-Forwarded-For": "23.90.184.7",
+        "X-Forwarded-Port": "443",
+        "X-Forwarded-Proto": "https"
+    },
+    "multiValueHeaders": {
+        "Accept-Encoding": [
+            "gzip, deflate, br, zstd"
+        ],
+        "Accept-Language": [
+            "en-GB,en;q=0.9"
+        ],
+        "Cache-Control": [
+            "no-cache"
+        ],
+        "Host": [
+            "bq40m4foce.execute-api.eu-west-2.amazonaws.com"
+        ],
+        "Origin": [
+            "https://d21l7qr876xo06.cloudfront.net"
+        ],
+        "Pragma": [
+            "no-cache"
+        ],
+        "Sec-WebSocket-Extensions": [
+            "permessage-deflate; client_max_window_bits"
+        ],
+        "Sec-WebSocket-Key": [
+            "SikSaQv0HdqjoWMvHyJ36w=="
+        ],
+        "Sec-WebSocket-Version": [
+            "13"
+        ],
+        "User-Agent": [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0"
+        ],
+        "X-Amzn-Trace-Id": [
+            "Root=1-6a42a1ed-74aabbc6794762d67191daa0"
+        ],
+        "X-Forwarded-For": [
+            "23.90.184.7"
+        ],
+        "X-Forwarded-Port": [
+            "443"
+        ],
+        "X-Forwarded-Proto": [
+            "https"
+        ]
+    },
+    "queryStringParameters": {
+        "companyId": "BigCorp",
+        "token": "abc123"
+    },
+    "multiValueQueryStringParameters": {
+        "companyId": [
+            "BigCorp"
+        ],
+        "token": [
+            "abc123"
+        ]
+    },
+    "requestContext": {
+        "routeKey": "$connect",
+        "authorizer": {
+            "companyId": "BigCorp",
+            "principalId": "demo-user",
+            "integrationLatency": 642
+        },
+        "eventType": "CONNECT",
+        "extendedRequestId": "fu49LEUqLPEEiUQ=",
+        "requestTime": "29/Jun/2026:16:48:45 +0000",
+        "messageDirection": "IN",
+        "stage": "prod",
+        "connectedAt": 1782751725587,
+        "requestTimeEpoch": 1782751725587,
+        "identity": {
+            "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36 Edg/149.0.0.0",
+            "sourceIp": "23.90.184.7"
+        },
+        "requestId": "fu49LEUqLPEEiUQ=",
+        "domainName": "bq40m4foce.execute-api.eu-west-2.amazonaws.com",
+        "connectionId": "gSgjKO83pWeIKEizgA==",
+        "apiId": "bq40m4foce"
+    },
+    "isBase64Encoded": false
 }

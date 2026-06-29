@@ -1,0 +1,21 @@
+{
+    "Records": [
+        {
+            "messageId": "710157cb-c4b8-477e-ac96-92c2e9d35e93",
+            "receiptHandle": "AQEB1tLccthyMYK8TsXT31Z5Lz9NSrbzl9ZBJmXowZNR/5nnthOvExDo7UjoeUU0Y2R2DGmN5E+r8fwwcS4LqaUWjjBxqLApynEEViTn5C8OOTCzkqw9WfNbCOncqpka/C4MxGX3144v5BMz30ry6jyLkmqBrpKcfZZUO115A8Vqj6tgpBlsgH8w5OucikcmQ69VU3J/hR5dHvN5dXQ+M0Mplh8pvhlAkWOETS3reEkKEDmHxPq95nEvEdLiQdg1UWYmzayMUtPJ0f5ibbaMVGzvHX3V10QC1iM9hsZirOlHutv4bwV7fSvXNgqQX/4L0tsQwb3VlhNrP22v2yhcSi/CoCH8CCH6wSCe+lYfZNZftrU7lxE7+Qxsol/O2AjyRzB5Lp05ewYgOBLJ2RDpetQrtA==",
+            "body": "{\"connectionId\": \"gSgBB85LAWeIKEi59A==\", \"message\": {\"connectionId\": \"gSgBB85LAWeIKEi59A==\", \"text\": \"Hi, you're talking to Fran. How can I help?\"}, \"timestamp\": \"2026-06-29T14:52:45.624651+00:00\"}",
+            "attributes": {
+                "ApproximateReceiveCount": "1",
+                "AWSTraceHeader": "Root=1-6a4286bc-6cc474dc40029c3e284d5d8c;Parent=0abf633137de77ef;Sampled=0;Lineage=1:a3b87264:0",
+                "SentTimestamp": "1782744765757",
+                "SenderId": "AROAR5ZKY7R3YMBOQFOCJ:ai-chatbot-backend-OutboundMessageProcessor-qPYpVfnfrsZV",
+                "ApproximateFirstReceiveTimestamp": "1782744765758"
+            },
+            "messageAttributes": {},
+            "md5OfBody": "f4b340736b910f00c3d89455a93f9f34",
+            "eventSource": "aws:sqs",
+            "eventSourceARN": "arn:aws:sqs:eu-west-2:132696833143:OutboundMessages",
+            "awsRegion": "eu-west-2"
+        }
+    ]
+}
