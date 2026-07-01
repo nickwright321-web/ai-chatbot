@@ -20,7 +20,6 @@ def lambda_handler(event, context):
         request_context = event.get("requestContext") or {}
         route = request_context.get("routeKey")
         connectionId = request_context.get("connectionId")
-       
 
         print(f"Received {route} event for connection ID: {connectionId}")
 

@@ -1,4 +1,4 @@
-import boto3
+import boto3, json
 
 class Gateway:
     _client = None
@@ -12,3 +12,18 @@ class Gateway:
         if cls._client is None:
             raise RuntimeError("Gateway client not initialised")
         return cls._client
+    
+    @classmethod
+    def post(cls, agentName: str, message: str, connectionId: str):
+        if cls._client is None:
+            raise RuntimeError("Gateway client not initialised")
+
+        payload = {
+            "agentName": agentName,
+            "message": message
+        }
+
+        cls._client.post_to_connection(
+            ConnectionId=connectionId,
+            Data=json.dumps(payload).encode("utf-8")
+        )

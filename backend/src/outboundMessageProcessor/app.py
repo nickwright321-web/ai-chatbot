@@ -54,6 +54,4 @@ def lambda_handler(event, context):
             "statusCode": 500,
             "body": json.dumps({"error": f"Failed to send the message to a queue: {e}"})}
     
-
-
     return {"statusCode": 200, "body": "Message received"}  

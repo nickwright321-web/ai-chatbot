@@ -90,7 +90,7 @@ def lambda_handler(event, context, apigw_client_factory=get_apigw_client):
                 userConf = getUserConf(message.lower())                
                 
                 if userConf=="YES":
-                    postToClient(AI_NAME, f"OK, I'll forward you now...", connectionId)
+                    Gateway.post(AI_NAME, f"OK, I'll forward you now...", connectionId)
                     sendToInboundQueue(
                         connectionId=connectionId,
                         companyId=companyId,
@@ -103,10 +103,10 @@ def lambda_handler(event, context, apigw_client_factory=get_apigw_client):
                 
                 elif userConf == "NO":
                     clearSessionState(connectionId)
-                    postToClient(AI_NAME, "No problem, how else can I help?", connectionId)
+                    Gateway.post(AI_NAME, "No problem, how else can I help?", connectionId)
                     return {"statusCode": 200}
                 else:
-                    postToClient(AI_NAME, "Just to confirm — would you like me to forward you?", connectionId)
+                    Gateway.post(AI_NAME, "Just to confirm — would you like me to forward you?", connectionId)
                     return {"statusCode": 200}
 
             logger.info(f"Retrieving chat history for {connectionId}")
@@ -143,7 +143,8 @@ def lambda_handler(event, context, apigw_client_factory=get_apigw_client):
             logger.info(f"AI response saved successfully for {connectionId}...")
 
             logger.info(f"AI Response to user: {ai_reply.text}")
-            postToClient(AI_NAME, ai_reply.text, connectionId)
+            #postToClient(AI_NAME, ai_reply.text, connectionId)
+            Gateway.post(AI_NAME, ai_reply.text, connectionId)
             
 
         except Exception as e:
@@ -158,17 +159,17 @@ def lambda_handler(event, context, apigw_client_factory=get_apigw_client):
        # print(f"Error processing event: {e}")
         return {"statusCode": 400, "body": "Invalid event format"}
 
-def postToClient(agentName:str, message:str, connectionId:str):
-    apigw = Gateway.get()
-    reply:dict[str,str] = {   "agentName": agentName,
-                    "message": message
-            }
+# def postToClient(agentName:str, message:str, connectionId:str):
+#     apigw = Gateway.get()
+#     reply:dict[str,str] = {   "agentName": agentName,
+#                     "message": message
+#             }
 
-    apigw.post_to_connection(
-        ConnectionId=connectionId,
-        Data=json.dumps(reply).encode("utf-8")
-    )
-    logger.info("Message sent OK")
+#     apigw.post_to_connection(
+#         ConnectionId=connectionId,
+#         Data=json.dumps(reply).encode("utf-8")
+#     )
+#     logger.info("Message sent OK")
 
 def savePendingIntent(connectionId:str, intent:str):
     # store a pending intent

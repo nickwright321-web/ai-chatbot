@@ -65,6 +65,3 @@ def send_message(message: dict):
     }
 
     return http_post_json(API_URL, payload, token)
-
-if __name__ == "__main__":
-    send_message("Hello from Python 🚀")

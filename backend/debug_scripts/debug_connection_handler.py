@@ -16,7 +16,6 @@ context = None
 if __name__ == "__main__":
     print(lambda_handler(event, context))
 
-
 # Build path relative to this file
 base_dir = os.path.dirname(os.path.abspath(__file__))
 event_path = os.path.join(base_dir, "..", "events", "ws_disconnect_event.json")

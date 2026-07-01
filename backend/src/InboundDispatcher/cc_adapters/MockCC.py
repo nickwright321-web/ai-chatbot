@@ -84,6 +84,7 @@ class MockCCAdapter(ccAdapter):
         time.sleep(2)
         send_message({
                 "connectionId": connectionId,
+                "agentName": "Fran",
                 "text": "Hi, you're talking to Fran. How can I help?"
             })
 

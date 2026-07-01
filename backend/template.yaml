@@ -731,8 +731,10 @@
       Type: AWS::Serverless::Function
       Properties:
         CodeUri: src/
-        Handler: OutboundMessageDispatcher.app.lambda_handler
-
+        Handler: outboundMessageDispatcher.app.lambda_handler
+        Environment:
+          Variables:
+            CONNECTIONS_TABLE_NAME: !Ref ConnectionsTableName
         Events:
           CCForwarderEvent:
             Type: SQS
@@ -744,14 +746,13 @@
         Policies:
         
           - AWSLambdaBasicExecutionRole
-          # - DynamoDBReadPolicy:
-          #     TableName: !Ref ChatHistoryTableName
-          
-          # - Statement:
-          #     Effect: Allow
-          #     Action:
-          #       - secretsmanager:GetSecretValue
-          #     Resource: "*"
+          - DynamoDBReadPolicy:
+              TableName: !Ref ConnectionsTableName
+          - Statement:
+              Effect: Allow
+              Action:
+                - execute-api:ManageConnections
+              Resource: "arn:aws:execute-api:*:*:*/@connections/*"
 
 #   ############################################################
 #   # Roles
